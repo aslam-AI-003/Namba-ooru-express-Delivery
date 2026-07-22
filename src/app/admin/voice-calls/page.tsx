@@ -5,6 +5,10 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import {
+  ArrowLeft, Phone, BarChart3, MessageSquare, Settings, FileText, Music,
+  Clock, CheckCircle2, Bot,
+} from 'lucide-react';
 
 // Mock data for the AI Call Center dashboard
 const MOCK_STATS = {
@@ -121,27 +125,34 @@ const PEAK_HOURS = [
   { hour: '9PM', calls: 15 },
 ];
 
+const TABS = [
+  { id: 'overview', label: 'Overview', icon: BarChart3 },
+  { id: 'calls', label: 'Call Log', icon: Phone },
+  { id: 'escalations', label: 'Escalations', icon: MessageSquare },
+  { id: 'config', label: 'Config', icon: Settings },
+];
+
 export default function VoiceCallsAdminPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'calls' | 'escalations' | 'config'>('overview');
   const [selectedCall, setSelectedCall] = useState<string | null>(null);
 
   const getOutcomeBadge = (outcome: string) => {
     switch (outcome) {
-      case 'order_created': return <Badge variant="success">✅ Order Created</Badge>;
-      case 'escalated_to_human': return <Badge variant="warning">🙋 Escalated</Badge>;
-      case 'abandoned': return <Badge variant="danger">❌ Abandoned</Badge>;
-      case 'no_order': return <Badge variant="default">— No Order</Badge>;
-      case 'call_dropped': return <Badge variant="danger">📵 Dropped</Badge>;
-      case 'in_progress': return <Badge variant="info">🔄 In Progress</Badge>;
+      case 'order_created': return <Badge variant="success">Order Created</Badge>;
+      case 'escalated_to_human': return <Badge variant="warning">Escalated</Badge>;
+      case 'abandoned': return <Badge variant="danger">Abandoned</Badge>;
+      case 'no_order': return <Badge variant="default">No Order</Badge>;
+      case 'call_dropped': return <Badge variant="danger">Dropped</Badge>;
+      case 'in_progress': return <Badge variant="info">In Progress</Badge>;
       default: return <Badge variant="default">{outcome}</Badge>;
     }
   };
 
   const getLanguageBadge = (lang: string) => {
     switch (lang) {
-      case 'ta': return <span className="text-[10px] px-1.5 py-0.5 bg-orange-500/15 text-orange-400 rounded font-bold">தமிழ்</span>;
-      case 'en': return <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/15 text-blue-400 rounded font-bold">ENG</span>;
-      case 'tanglish': return <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/15 text-purple-400 rounded font-bold">Mix</span>;
+      case 'ta': return <span className="text-[10px] px-1.5 py-0.5 bg-orange-500/15 text-orange-600 dark:text-orange-400 rounded font-bold">தமிழ்</span>;
+      case 'en': return <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/15 text-blue-600 dark:text-blue-400 rounded font-bold">ENG</span>;
+      case 'tanglish': return <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/15 text-purple-600 dark:text-purple-400 rounded font-bold">Mix</span>;
       default: return null;
     }
   };
@@ -149,29 +160,29 @@ export default function VoiceCallsAdminPage() {
   const maxCalls = Math.max(...PEAK_HOURS.map(h => h.calls));
 
   return (
-    <div className="min-h-screen bg-dark-900">
+    <div className="min-h-screen app-bg">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-dark-900/80 backdrop-blur-xl border-b border-dark-50/20 px-6 py-4">
+      <header className="sticky top-0 z-40 header-glass px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/admin" className="p-2 bg-dark-400 rounded-xl hover:bg-dark-300 transition-colors">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <Link href="/admin" className="p-2 surface surface-hover rounded-xl transition-colors">
+              <ArrowLeft size={16} className="text-secondary" />
             </Link>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center">
-                <span className="text-xl">📞</span>
+              <div className="w-10 h-10 bg-purple-500/15 border border-purple-500/25 rounded-xl flex items-center justify-center">
+                <Bot size={20} className="text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white">AI Call Center</h1>
-                <p className="text-xs text-gray-500">Voice Order Intelligence Dashboard</p>
+                <h1 className="text-lg font-bold text-body">AI Call Center</h1>
+                <p className="text-xs text-faint">Voice Order Intelligence Dashboard</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {MOCK_STATS.activeCalls > 0 && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-xs font-bold text-emerald-400">{MOCK_STATS.activeCalls} Live Calls</span>
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{MOCK_STATS.activeCalls} Live Calls</span>
               </div>
             )}
           </div>
@@ -180,18 +191,13 @@ export default function VoiceCallsAdminPage() {
 
       {/* Tabs */}
       <div className="max-w-7xl mx-auto px-6 pt-4">
-        <div className="flex gap-1 p-1 bg-dark-400/50 rounded-xl w-fit">
-          {[
-            { id: 'overview', label: '📊 Overview', },
-            { id: 'calls', label: '📞 Call Log' },
-            { id: 'escalations', label: '🙋 Escalations' },
-            { id: 'config', label: '⚙️ Config' },
-          ].map(tab => (
+        <div className="flex gap-1 p-1 surface rounded-xl w-fit">
+          {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab.id ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'text-gray-400 hover:text-white'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                activeTab === tab.id ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/25' : 'text-muted hover:text-body'
               }`}>
-              {tab.label}
+              <tab.icon size={14} /> {tab.label}
             </button>
           ))}
         </div>
@@ -203,51 +209,51 @@ export default function VoiceCallsAdminPage() {
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-              <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
-                <p className="text-xs text-gray-400">Total Calls</p>
-                <p className="text-2xl font-bold text-purple-400 mt-1">{MOCK_STATS.totalCalls}</p>
-                <p className="text-[10px] text-gray-500 mt-1">Last 7 days</p>
+              <Card className="bg-gradient-to-br from-purple-500/8 to-transparent border-purple-500/20">
+                <p className="text-xs text-faint">Total Calls</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{MOCK_STATS.totalCalls}</p>
+                <p className="text-[10px] text-faint mt-1">Last 7 days</p>
               </Card>
-              <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
-                <p className="text-xs text-gray-400">Orders Created</p>
-                <p className="text-2xl font-bold text-emerald-400 mt-1">{MOCK_STATS.successfulOrders}</p>
-                <p className="text-[10px] text-emerald-400 mt-1">✓ {MOCK_STATS.successRate}% success</p>
+              <Card className="bg-gradient-to-br from-emerald-500/8 to-transparent border-emerald-500/20">
+                <p className="text-xs text-faint">Orders Created</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{MOCK_STATS.successfulOrders}</p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">{MOCK_STATS.successRate}% success</p>
               </Card>
-              <Card className="bg-gradient-to-br from-orange-500/10 to-transparent border-orange-500/20">
-                <p className="text-xs text-gray-400">Escalated</p>
-                <p className="text-2xl font-bold text-orange-400 mt-1">{MOCK_STATS.escalatedCalls}</p>
-                <p className="text-[10px] text-orange-400 mt-1">↑ {MOCK_STATS.escalationRate}%</p>
+              <Card className="bg-gradient-to-br from-orange-500/8 to-transparent border-orange-500/20">
+                <p className="text-xs text-faint">Escalated</p>
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">{MOCK_STATS.escalatedCalls}</p>
+                <p className="text-[10px] text-orange-600 dark:text-orange-400 mt-1">{MOCK_STATS.escalationRate}%</p>
               </Card>
-              <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
-                <p className="text-xs text-gray-400">Avg Handle Time</p>
-                <p className="text-2xl font-bold text-blue-400 mt-1">{MOCK_STATS.avgHandleTime}</p>
-                <p className="text-[10px] text-gray-500 mt-1">minutes</p>
+              <Card className="bg-gradient-to-br from-blue-500/8 to-transparent border-blue-500/20">
+                <p className="text-xs text-faint">Avg Handle Time</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{MOCK_STATS.avgHandleTime}</p>
+                <p className="text-[10px] text-faint mt-1">minutes</p>
               </Card>
-              <Card className="bg-gradient-to-br from-yellow-500/10 to-transparent border-yellow-500/20">
-                <p className="text-xs text-gray-400">Avg AI Confidence</p>
-                <p className="text-2xl font-bold text-yellow-400 mt-1">{MOCK_STATS.avgConfidence}%</p>
-                <p className="text-[10px] text-gray-500 mt-1">Score</p>
+              <Card className="bg-gradient-to-br from-amber-500/8 to-transparent border-amber-500/20">
+                <p className="text-xs text-faint">Avg AI Confidence</p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{MOCK_STATS.avgConfidence}%</p>
+                <p className="text-[10px] text-faint mt-1">Score</p>
               </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Live Calls */}
               <Card padding="none" className="border-emerald-500/20">
-                <div className="p-4 border-b border-dark-50/20 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <div className="p-4 border-b border-subtle flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-body flex items-center gap-2">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                     Live Calls ({MOCK_LIVE_CALLS.length})
                   </h3>
                 </div>
-                <div className="divide-y divide-dark-50/10">
+                <div className="divide-y divide-[var(--divider)]">
                   {MOCK_LIVE_CALLS.map(call => (
                     <div key={call.id} className="px-4 py-3 flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-white">{call.phone}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{call.status}</p>
+                        <p className="text-sm font-medium text-body">{call.phone}</p>
+                        <p className="text-xs text-faint mt-0.5">{call.status}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-mono text-emerald-400">{call.duration}</p>
+                        <p className="text-sm font-mono text-emerald-600 dark:text-emerald-400">{call.duration}</p>
                         {getLanguageBadge(call.language)}
                       </div>
                     </div>
@@ -257,20 +263,20 @@ export default function VoiceCallsAdminPage() {
 
               {/* Peak Hours Chart */}
               <Card padding="none" className="lg:col-span-2">
-                <div className="p-4 border-b border-dark-50/20">
-                  <h3 className="text-sm font-bold text-white">📈 Call Volume by Hour (Today)</h3>
+                <div className="p-4 border-b border-subtle">
+                  <h3 className="text-sm font-bold text-body flex items-center gap-1.5"><BarChart3 size={14} className="text-purple-600 dark:text-purple-400" /> Call Volume by Hour (Today)</h3>
                 </div>
                 <div className="p-4">
                   <div className="flex items-end gap-1 h-32">
                     {PEAK_HOURS.map((h, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div key={i} className="flex-1 h-full flex flex-col justify-end items-center gap-1">
                         <div className="w-full rounded-t-sm transition-all hover:opacity-80"
                           style={{
                             height: `${(h.calls / maxCalls) * 100}%`,
                             background: h.calls > 25 ? 'rgba(168,85,247,0.6)' : h.calls > 15 ? 'rgba(168,85,247,0.4)' : 'rgba(168,85,247,0.2)',
                           }}
                         />
-                        <span className="text-[8px] text-gray-500 -rotate-45">{h.hour}</span>
+                        <span className="text-[8px] text-faint -rotate-45">{h.hour}</span>
                       </div>
                     ))}
                   </div>
@@ -280,14 +286,14 @@ export default function VoiceCallsAdminPage() {
 
             {/* Recent Calls */}
             <Card padding="none">
-              <div className="p-4 border-b border-dark-50/20 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white">📞 Recent Calls</h3>
-                <button onClick={() => setActiveTab('calls')} className="text-xs text-purple-400 font-bold hover:text-purple-300">View All →</button>
+              <div className="p-4 border-b border-subtle flex items-center justify-between">
+                <h3 className="text-sm font-bold text-body">Recent Calls</h3>
+                <button onClick={() => setActiveTab('calls')} className="text-xs text-purple-600 dark:text-purple-400 font-bold hover:opacity-80">View All →</button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-xs text-gray-500 border-b border-dark-50/10">
+                    <tr className="text-xs text-faint border-b border-subtle">
                       <th className="text-left px-4 py-3 font-medium">Caller</th>
                       <th className="text-left px-4 py-3 font-medium">Time</th>
                       <th className="text-left px-4 py-3 font-medium">Duration</th>
@@ -297,33 +303,33 @@ export default function VoiceCallsAdminPage() {
                       <th className="text-left px-4 py-3 font-medium">Order</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-dark-50/10">
+                  <tbody className="divide-y divide-[var(--divider)]">
                     {MOCK_CALLS.slice(0, 5).map(call => (
-                      <tr key={call.id} className="hover:bg-dark-400/20 transition-colors cursor-pointer" onClick={() => setSelectedCall(call.id)}>
+                      <tr key={call.id} className="hover:bg-[var(--card-hover)] transition-colors cursor-pointer" onClick={() => setSelectedCall(call.id)}>
                         <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-white">{call.customerName || call.callerPhone}</p>
-                          {call.customerName && <p className="text-xs text-gray-500">{call.callerPhone}</p>}
+                          <p className="text-sm font-medium text-body">{call.customerName || call.callerPhone}</p>
+                          {call.customerName && <p className="text-xs text-faint">{call.callerPhone}</p>}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-400">{call.startTime}</td>
-                        <td className="px-4 py-3 text-sm font-mono text-gray-300">{call.duration}</td>
+                        <td className="px-4 py-3 text-sm text-muted">{call.startTime}</td>
+                        <td className="px-4 py-3 text-sm font-mono text-secondary">{call.duration}</td>
                         <td className="px-4 py-3">{getLanguageBadge(call.language)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-12 h-1.5 bg-dark-400 rounded-full overflow-hidden">
+                            <div className="w-12 h-1.5 bg-[var(--bg3)] rounded-full overflow-hidden">
                               <div className="h-full rounded-full" style={{
                                 width: `${call.confidence}%`,
                                 background: call.confidence > 80 ? '#10B981' : call.confidence > 60 ? '#F59E0B' : '#EF4444',
                               }} />
                             </div>
-                            <span className="text-xs text-gray-400">{call.confidence}%</span>
+                            <span className="text-xs text-muted">{call.confidence}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">{getOutcomeBadge(call.outcome)}</td>
                         <td className="px-4 py-3">
                           {call.orderId ? (
-                            <span className="text-sm font-medium text-emerald-400">{call.orderId} (₹{call.orderTotal})</span>
+                            <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{call.orderId} (₹{call.orderTotal})</span>
                           ) : (
-                            <span className="text-xs text-gray-500">—</span>
+                            <span className="text-xs text-faint">—</span>
                           )}
                         </td>
                       </tr>
@@ -336,55 +342,55 @@ export default function VoiceCallsAdminPage() {
             {/* Language Distribution */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
-                <h3 className="text-sm font-bold text-white mb-3">🗣️ Language Distribution</h3>
+                <h3 className="text-sm font-bold text-body mb-3">Language Distribution</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Tamil (தமிழ்)</span>
+                    <span className="text-sm text-secondary">Tamil (தமிழ்)</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 bg-dark-400 rounded-full overflow-hidden">
+                      <div className="w-24 h-2 bg-[var(--bg3)] rounded-full overflow-hidden">
                         <div className="h-full bg-orange-400 rounded-full" style={{ width: '68%' }} />
                       </div>
-                      <span className="text-xs text-gray-400">68%</span>
+                      <span className="text-xs text-muted">68%</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Tanglish (Mix)</span>
+                    <span className="text-sm text-secondary">Tanglish (Mix)</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 bg-dark-400 rounded-full overflow-hidden">
+                      <div className="w-24 h-2 bg-[var(--bg3)] rounded-full overflow-hidden">
                         <div className="h-full bg-purple-400 rounded-full" style={{ width: '24%' }} />
                       </div>
-                      <span className="text-xs text-gray-400">24%</span>
+                      <span className="text-xs text-muted">24%</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">English</span>
+                    <span className="text-sm text-secondary">English</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 bg-dark-400 rounded-full overflow-hidden">
+                      <div className="w-24 h-2 bg-[var(--bg3)] rounded-full overflow-hidden">
                         <div className="h-full bg-blue-400 rounded-full" style={{ width: '8%' }} />
                       </div>
-                      <span className="text-xs text-gray-400">8%</span>
+                      <span className="text-xs text-muted">8%</span>
                     </div>
                   </div>
                 </div>
               </Card>
               <Card>
-                <h3 className="text-sm font-bold text-white mb-3">📦 Top Ordered Items (Voice)</h3>
+                <h3 className="text-sm font-bold text-body mb-3">Top Ordered Items (Voice)</h3>
                 <div className="space-y-2">
                   {['Aavin Milk 1L', 'Rice 5kg', 'Cooking Oil', 'Sugar 1kg', 'Eggs (12)'].map((item, i) => (
                     <div key={i} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-300">{item}</span>
-                      <span className="text-xs text-purple-400 font-bold">{35 - i * 5} orders</span>
+                      <span className="text-sm text-secondary">{item}</span>
+                      <span className="text-xs text-purple-600 dark:text-purple-400 font-bold">{35 - i * 5} orders</span>
                     </div>
                   ))}
                 </div>
               </Card>
               <Card>
-                <h3 className="text-sm font-bold text-white mb-3">🏪 Top Shops (Voice Orders)</h3>
+                <h3 className="text-sm font-bold text-body mb-3">Top Shops (Voice Orders)</h3>
                 <div className="space-y-2">
                   {['Murugan Stores', 'Fresh Mart', 'MedPlus', 'Sri Krishna', 'Annapoorna'].map((shop, i) => (
                     <div key={i} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-300">{shop}</span>
-                      <span className="text-xs text-emerald-400 font-bold">{28 - i * 4} orders</span>
+                      <span className="text-sm text-secondary">{shop}</span>
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">{28 - i * 4} orders</span>
                     </div>
                   ))}
                 </div>
@@ -396,16 +402,16 @@ export default function VoiceCallsAdminPage() {
         {/* ━━━━ CALLS TAB ━━━━ */}
         {activeTab === 'calls' && (
           <Card padding="none">
-            <div className="p-4 border-b border-dark-50/20 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">All Voice Calls</h3>
+            <div className="p-4 border-b border-subtle flex items-center justify-between">
+              <h3 className="text-sm font-bold text-body">All Voice Calls</h3>
               <div className="flex gap-2">
-                <select className="bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-1.5 text-xs text-gray-300">
+                <select className="input-glass py-1.5 text-xs w-auto">
                   <option>All Outcomes</option>
                   <option>Order Created</option>
                   <option>Escalated</option>
                   <option>Abandoned</option>
                 </select>
-                <select className="bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-1.5 text-xs text-gray-300">
+                <select className="input-glass py-1.5 text-xs w-auto">
                   <option>Today</option>
                   <option>Last 7 days</option>
                   <option>Last 30 days</option>
@@ -415,7 +421,7 @@ export default function VoiceCallsAdminPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-xs text-gray-500 border-b border-dark-50/10">
+                  <tr className="text-xs text-faint border-b border-subtle">
                     <th className="text-left px-4 py-3 font-medium">ID</th>
                     <th className="text-left px-4 py-3 font-medium">Caller</th>
                     <th className="text-left px-4 py-3 font-medium">Time</th>
@@ -428,31 +434,31 @@ export default function VoiceCallsAdminPage() {
                     <th className="text-left px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-dark-50/10">
+                <tbody className="divide-y divide-[var(--divider)]">
                   {MOCK_CALLS.map(call => (
-                    <tr key={call.id} className="hover:bg-dark-400/20 transition-colors">
-                      <td className="px-4 py-3 text-xs font-mono text-gray-500">{call.id}</td>
+                    <tr key={call.id} className="hover:bg-[var(--card-hover)] transition-colors">
+                      <td className="px-4 py-3 text-xs font-mono text-faint">{call.id}</td>
                       <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-white">{call.customerName || '—'}</p>
-                        <p className="text-xs text-gray-500">{call.callerPhone}</p>
+                        <p className="text-sm font-medium text-body">{call.customerName || '—'}</p>
+                        <p className="text-xs text-faint">{call.callerPhone}</p>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-400">{call.startTime}</td>
-                      <td className="px-4 py-3 text-sm font-mono text-gray-300">{call.duration}</td>
+                      <td className="px-4 py-3 text-sm text-muted">{call.startTime}</td>
+                      <td className="px-4 py-3 text-sm font-mono text-secondary">{call.duration}</td>
                       <td className="px-4 py-3">{getLanguageBadge(call.language)}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-sm font-bold ${call.confidence > 80 ? 'text-emerald-400' : call.confidence > 60 ? 'text-yellow-400' : 'text-red-400'}`}>
+                        <span className={`text-sm font-bold ${call.confidence > 80 ? 'text-emerald-600 dark:text-emerald-400' : call.confidence > 60 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
                           {call.confidence}%
                         </span>
                       </td>
                       <td className="px-4 py-3">{getOutcomeBadge(call.outcome)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-300">{call.shopName || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-secondary">{call.shopName || '—'}</td>
                       <td className="px-4 py-3">
-                        {call.orderId ? <span className="text-sm text-emerald-400">{call.orderId}</span> : '—'}
+                        {call.orderId ? <span className="text-sm text-emerald-600 dark:text-emerald-400">{call.orderId}</span> : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <button className="p-1.5 bg-dark-400 rounded-lg hover:bg-dark-300 text-xs" title="View Transcript">📜</button>
-                          <button className="p-1.5 bg-dark-400 rounded-lg hover:bg-dark-300 text-xs" title="Play Recording">🎵</button>
+                          <button className="p-1.5 surface surface-hover rounded-lg" title="View Transcript"><FileText size={13} className="text-secondary" /></button>
+                          <button className="p-1.5 surface surface-hover rounded-lg" title="Play Recording"><Music size={13} className="text-secondary" /></button>
                         </div>
                       </td>
                     </tr>
@@ -466,27 +472,27 @@ export default function VoiceCallsAdminPage() {
         {/* ━━━━ ESCALATIONS TAB ━━━━ */}
         {activeTab === 'escalations' && (
           <Card padding="none">
-            <div className="p-4 border-b border-dark-50/20 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">🙋 Human Escalations</h3>
+            <div className="p-4 border-b border-subtle flex items-center justify-between">
+              <h3 className="text-sm font-bold text-body flex items-center gap-1.5"><MessageSquare size={14} className="text-purple-600 dark:text-purple-400" /> Human Escalations</h3>
               <Badge variant="warning">{MOCK_ESCALATIONS.filter(e => e.status === 'queued').length} Pending</Badge>
             </div>
-            <div className="divide-y divide-dark-50/10">
+            <div className="divide-y divide-[var(--divider)]">
               {MOCK_ESCALATIONS.map(esc => (
-                <div key={esc.id} className="p-4 flex items-center justify-between hover:bg-dark-400/20 transition-colors">
+                <div key={esc.id} className="p-4 flex items-center justify-between hover:bg-[var(--card-hover)] transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      esc.status === 'queued' ? 'bg-orange-500/15 border border-orange-500/25' : 'bg-emerald-500/15 border border-emerald-500/25'
+                      esc.status === 'queued' ? 'bg-orange-500/12 border border-orange-500/25' : 'bg-emerald-500/12 border border-emerald-500/25'
                     }`}>
-                      <span className="text-lg">{esc.status === 'queued' ? '⏳' : '✅'}</span>
+                      {esc.status === 'queued' ? <Clock size={18} className="text-orange-600 dark:text-orange-400" /> : <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400" />}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">{esc.phone}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{esc.reason}</p>
-                      <p className="text-xs text-gray-600 mt-0.5">{esc.time}</p>
+                      <p className="text-sm font-medium text-body">{esc.phone}</p>
+                      <p className="text-xs text-faint mt-0.5">{esc.reason}</p>
+                      <p className="text-xs text-faint mt-0.5">{esc.time}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {esc.agentName && <span className="text-xs text-gray-400">Handled by: {esc.agentName}</span>}
+                    {esc.agentName && <span className="text-xs text-muted">Handled by: {esc.agentName}</span>}
                     <Badge variant={esc.status === 'queued' ? 'warning' : 'success'}>{esc.status}</Badge>
                     {esc.status === 'queued' && (
                       <Button size="sm">Take Over</Button>
@@ -502,47 +508,47 @@ export default function VoiceCallsAdminPage() {
         {activeTab === 'config' && (
           <div className="space-y-6">
             <Card>
-              <h3 className="text-sm font-bold text-white mb-4">🤖 AI Voice Agent Configuration</h3>
+              <h3 className="text-sm font-bold text-body mb-4 flex items-center gap-1.5"><Bot size={15} className="text-purple-600 dark:text-purple-400" /> AI Voice Agent Configuration</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Confidence Threshold (%)</label>
-                  <input type="number" defaultValue={70} className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
-                  <p className="text-[10px] text-gray-600 mt-1">Below this, AI asks clarifying question or escalates</p>
+                  <label className="text-xs text-muted block mb-1">Confidence Threshold (%)</label>
+                  <input type="number" defaultValue={70} className="input-glass" />
+                  <p className="text-[10px] text-faint mt-1">Below this, AI asks clarifying question or escalates</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Max Clarification Attempts</label>
-                  <input type="number" defaultValue={2} className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
-                  <p className="text-[10px] text-gray-600 mt-1">After this many, escalate to human</p>
+                  <label className="text-xs text-muted block mb-1">Max Clarification Attempts</label>
+                  <input type="number" defaultValue={2} className="input-glass" />
+                  <p className="text-[10px] text-faint mt-1">After this many, escalate to human</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Max Call Duration (seconds)</label>
-                  <input type="number" defaultValue={300} className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
+                  <label className="text-xs text-muted block mb-1">Max Call Duration (seconds)</label>
+                  <input type="number" defaultValue={300} className="input-glass" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">High Value Order Threshold (₹)</label>
-                  <input type="number" defaultValue={2000} className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
-                  <p className="text-[10px] text-gray-600 mt-1">Above this, SMS confirmation required before dispatch</p>
+                  <label className="text-xs text-muted block mb-1">High Value Order Threshold (₹)</label>
+                  <input type="number" defaultValue={2000} className="input-glass" />
+                  <p className="text-[10px] text-faint mt-1">Above this, SMS confirmation required before dispatch</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Concurrent Call Limit</label>
-                  <input type="number" defaultValue={10} className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
+                  <label className="text-xs text-muted block mb-1">Concurrent Call Limit</label>
+                  <input type="number" defaultValue={10} className="input-glass" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Recording Retention (days)</label>
-                  <input type="number" defaultValue={90} className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
+                  <label className="text-xs text-muted block mb-1">Recording Retention (days)</label>
+                  <input type="number" defaultValue={90} className="input-glass" />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-dark-50/10">
+              <div className="mt-4 pt-4 border-t border-subtle">
                 <Button>Save Configuration</Button>
               </div>
             </Card>
 
             <Card>
-              <h3 className="text-sm font-bold text-white mb-4">📱 Telephony Provider</h3>
+              <h3 className="text-sm font-bold text-body mb-4 flex items-center gap-1.5"><Phone size={15} className="text-purple-600 dark:text-purple-400" /> Telephony Provider</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Provider</label>
-                  <select className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white">
+                  <label className="text-xs text-muted block mb-1">Provider</label>
+                  <select className="input-glass">
                     <option>Exotel</option>
                     <option>Knowlarity</option>
                     <option>Airtel IQ</option>
@@ -550,32 +556,32 @@ export default function VoiceCallsAdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Support Number</label>
-                  <input type="text" defaultValue="+91 9566700534" className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
+                  <label className="text-xs text-muted block mb-1">Support Number</label>
+                  <input type="text" defaultValue="+91 9566700534" className="input-glass" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Human Agent Queue Number</label>
-                  <input type="text" defaultValue="+91 9566700534" className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
+                  <label className="text-xs text-muted block mb-1">Human Agent Queue Number</label>
+                  <input type="text" defaultValue="+91 9566700534" className="input-glass" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Webhook Secret</label>
-                  <input type="password" defaultValue="••••••••••" className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white" />
+                  <label className="text-xs text-muted block mb-1">Webhook Secret</label>
+                  <input type="password" defaultValue="••••••••••" className="input-glass" />
                 </div>
               </div>
             </Card>
 
             <Card>
-              <h3 className="text-sm font-bold text-white mb-4">🗣️ Greeting Messages</h3>
+              <h3 className="text-sm font-bold text-body mb-4 flex items-center gap-1.5"><MessageSquare size={15} className="text-purple-600 dark:text-purple-400" /> Greeting Messages</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Tamil Greeting</label>
+                  <label className="text-xs text-muted block mb-1">Tamil Greeting</label>
                   <textarea defaultValue="வணக்கம்! நம்ம ஊரு Express-க்கு வரவேற்கிறேன். என்ன order வேணும்?"
-                    className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white resize-none" rows={2} />
+                    className="input-glass resize-none" rows={2} />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">English Greeting</label>
+                  <label className="text-xs text-muted block mb-1">English Greeting</label>
                   <textarea defaultValue="Hello! Welcome to Namma Ooru Express. What would you like to order?"
-                    className="w-full bg-dark-400 border border-dark-50/20 rounded-lg px-3 py-2 text-sm text-white resize-none" rows={2} />
+                    className="input-glass resize-none" rows={2} />
                 </div>
               </div>
             </Card>

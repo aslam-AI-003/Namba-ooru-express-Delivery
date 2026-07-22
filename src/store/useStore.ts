@@ -48,6 +48,8 @@ export interface DemoOrder {
   riderName?: string;
   customerName: string;
   customerPhone: string;
+  rating?: number;
+  review?: string;
   createdAt: string; // ISO string
   updatedAt: string;
 }

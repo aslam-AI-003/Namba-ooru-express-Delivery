@@ -12,7 +12,7 @@ export function getResolvedTheme(theme: Theme): 'dark' | 'light' {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    return 'dark'; // SSR default
+    return 'light'; // SSR default
   }
   return theme;
 }
@@ -33,11 +33,11 @@ export function applyTheme(theme: Theme) {
     root.classList.add('light');
     root.classList.remove('dark');
   }
-  
+
   // Update meta theme-color for mobile browser chrome
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) {
-    metaTheme.setAttribute('content', resolved === 'dark' ? '#080808' : '#FFFFFF');
+    metaTheme.setAttribute('content', resolved === 'dark' ? '#0B0B0D' : '#FFFFFF');
   }
 }
 
@@ -45,8 +45,8 @@ export function applyTheme(theme: Theme) {
  * Get stored theme preference
  */
 export function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark';
-  return (localStorage.getItem('noe-theme') as Theme) || 'dark';
+  if (typeof window === 'undefined') return 'light';
+  return (localStorage.getItem('noe-theme') as Theme) || 'light';
 }
 
 /**

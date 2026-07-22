@@ -2,19 +2,21 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft, ShoppingCart, Trash2, Sparkles, Ticket, MapPin, Receipt, Rocket,
+} from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { SEED_SHOPS, SEED_COUPONS, SEED_PRODUCTS } from '@/lib/seed-data';
 import toast from 'react-hot-toast';
 
-const CATEGORY_ICONS: Record<string, string> = {
-  groceries: '🛒', vegetables: '🥬', meat: '🍗', medicines: '💊',
-  bakery: '🎂', restaurants: '🍽️', 'tea-shops': '☕',
-};
+const PRODUCT_IMAGE: Record<string, string> = Object.fromEntries(SEED_PRODUCTS.map(p => [p.id, p.image]));
 
 export default function CartPage() {
   const router = useRouter();
-  const { cart, cartShopId, updateQuantity, removeFromCart, clearCart, getCartTotal, addToCart } = useStore();
+  const { cart, cartShopId, updateQuantity, removeFromCart, clearCart, getCartTotal, addToCart, addresses, selectedAddressId } = useStore();
+  const selectedAddress = addresses.find(a => a.id === selectedAddressId) || addresses[0];
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<typeof SEED_COUPONS[0] | null>(null);
   const [couponError, setCouponError] = useState('');
@@ -48,14 +50,16 @@ export default function CartPage() {
       <main className="min-h-screen app-bg pb-24 md:pb-8">
         <header className="sticky top-0 z-50 header-glass">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Link href="/" className="btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></Link>
-            <h1 className="font-bold text-white">My Cart</h1>
+            <Link href="/" className="btn-icon"><ArrowLeft size={18} /></Link>
+            <h1 className="font-bold text-body">My Cart</h1>
           </div>
         </header>
         <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
-          <div className="text-7xl mb-6" style={{ animation: 'float 3s ease-in-out infinite' }}>🛒</div>
-          <h2 className="text-2xl font-black text-white">Your cart is empty</h2>
-          <p className="text-white/40 mt-2 text-sm">Add items from nearby shops to get started</p>
+          <div className="w-20 h-20 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 animate-float">
+            <ShoppingCart size={36} className="text-accent" />
+          </div>
+          <h2 className="text-2xl font-black text-body">Your cart is empty</h2>
+          <p className="text-muted mt-2 text-sm">Add items from nearby shops to get started</p>
           <Link href="/shops" className="btn-primary mt-6">Browse Shops →</Link>
         </div>
       </main>
@@ -67,14 +71,14 @@ export default function CartPage() {
       <header className="sticky top-0 z-50 header-glass">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href={shop ? `/shops/${shop.id}` : '/shops'} className="btn-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <ArrowLeft size={18} />
           </Link>
           <div className="flex-1">
-            <h1 className="font-bold text-white">My Cart</h1>
-            {shop && <p className="text-xs text-white/40">{shop.name}</p>}
+            <h1 className="font-bold text-body">My Cart</h1>
+            {shop && <p className="text-xs text-faint">{shop.name}</p>}
           </div>
           <button onClick={() => { clearCart(); toast.success('Cart cleared'); }}
-            className="text-xs text-red-400 hover:text-red-300 font-semibold transition-colors">
+            className="text-xs text-red-500 hover:text-red-400 font-semibold transition-colors">
             Clear All
           </button>
         </div>
@@ -83,15 +87,15 @@ export default function CartPage() {
       <div className="max-w-5xl mx-auto px-4 pt-4 space-y-4">
         {/* Shop info */}
         {shop && (
-          <div className="rounded-2xl border p-3 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.07)' }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(251,191,36,0.1)' }}>
-              {CATEGORY_ICONS[shop.categoryId] || '🏪'}
+          <div className="glass-card p-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl overflow-hidden relative flex-shrink-0">
+              <Image src={shop.images.banner || '/images/categories/groceries.jpg'} alt={shop.name} fill sizes="40px" className="object-cover" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{shop.name}</p>
-              <p className="text-xs text-white/40 truncate">{shop.address.full}</p>
+              <p className="text-sm font-bold text-body truncate">{shop.name}</p>
+              <p className="text-xs text-faint truncate">{shop.address.full}</p>
             </div>
-            <Link href={`/shops/${shop.id}`} className="text-xs text-yellow-400 font-semibold hover:text-yellow-300 flex-shrink-0">
+            <Link href={`/shops/${shop.id}`} className="text-xs text-accent font-semibold hover:opacity-80 flex-shrink-0">
               Add More +
             </Link>
           </div>
@@ -99,12 +103,12 @@ export default function CartPage() {
 
         {/* Free delivery progress */}
         {subtotal < 500 && (
-          <div className="rounded-2xl border p-3" style={{ background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.15)' }}>
+          <div className="glass-card p-3 bg-emerald-500/5 border-emerald-500/15">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-emerald-400">🚀 Free delivery at ₹500</span>
-              <span className="text-xs text-white/40">₹{500 - subtotal} more</span>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Rocket size={13} /> Free delivery at ₹500</span>
+              <span className="text-xs text-muted">₹{500 - subtotal} more</span>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-1.5 rounded-full overflow-hidden bg-[var(--bg3)]">
               <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(subtotal / 500) * 100}%`, background: 'linear-gradient(90deg, #10B981, #34D399)' }} />
             </div>
           </div>
@@ -113,17 +117,19 @@ export default function CartPage() {
         {/* Cart Items */}
         <div className="space-y-2">
           {cart.map(item => (
-            <div key={item.productId} className="rounded-2xl border p-4 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.07)' }}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                📦
+            <div key={item.productId} className="glass-card p-4 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl overflow-hidden relative flex-shrink-0">
+                {PRODUCT_IMAGE[item.productId] && (
+                  <Image src={PRODUCT_IMAGE[item.productId]} alt={item.name} fill sizes="48px" className="object-cover" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-white truncate">{item.name}</h4>
-                <p className="text-[11px] text-white/35">{item.unit}</p>
+                <h4 className="text-sm font-bold text-body truncate">{item.name}</h4>
+                <p className="text-[11px] text-faint">{item.unit}</p>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-sm font-black text-white">₹{item.discountPrice || item.price}</span>
+                  <span className="text-sm font-black text-body">₹{item.discountPrice || item.price}</span>
                   {item.discountPrice && item.discountPrice < item.price && (
-                    <span className="text-[10px] text-white/30 line-through">₹{item.price}</span>
+                    <span className="text-[10px] text-faint line-through">₹{item.price}</span>
                   )}
                 </div>
               </div>
@@ -133,8 +139,8 @@ export default function CartPage() {
                   <span className="qty-value">{item.quantity}</span>
                   <button className="qty-btn" onClick={() => updateQuantity(item.productId, item.quantity + 1)}>+</button>
                 </div>
-                <button onClick={() => removeFromCart(item.productId)} className="w-7 h-7 flex items-center justify-center text-white/25 hover:text-red-400 transition-colors">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                <button onClick={() => removeFromCart(item.productId)} className="w-7 h-7 flex items-center justify-center text-faint hover:text-red-500 transition-colors">
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>
@@ -143,35 +149,34 @@ export default function CartPage() {
 
         {/* ── UPSELL: Add More Items ── */}
         {upsellProducts.length > 0 && (
-          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+          <div className="glass-card overflow-hidden p-0">
             <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">✨ Add More Items</h3>
-              <Link href={`/shops/${cartShopId}`} className="text-xs text-yellow-400 font-semibold">View All →</Link>
+              <h3 className="text-sm font-bold text-body flex items-center gap-1.5"><Sparkles size={14} className="text-accent" /> Add More Items</h3>
+              <Link href={`/shops/${cartShopId}`} className="text-xs text-accent font-semibold">View All →</Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto px-4 pb-4 scrollbar-hide">
+            <div className="flex gap-3 overflow-x-auto px-4 pb-4 no-scrollbar">
               {upsellProducts.map(product => {
                 const inCart = cart.find(c => c.productId === product.id);
                 return (
-                  <div key={product.id} className="flex-shrink-0 w-36 rounded-xl border p-3" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl mb-2" style={{ background: 'rgba(251,191,36,0.08)' }}>
-                      {CATEGORY_ICONS[product.categoryId] || '📦'}
+                  <div key={product.id} className="flex-shrink-0 w-36 glass-sm p-3">
+                    <div className="w-full h-16 rounded-lg overflow-hidden relative mb-2">
+                      <Image src={product.image} alt={product.name} fill sizes="140px" className="object-cover" />
                     </div>
-                    <p className="text-xs font-bold text-white truncate mb-0.5">{product.name}</p>
-                    <p className="text-[10px] text-white/35 mb-2">{product.unit}</p>
+                    <p className="text-xs font-bold text-body truncate mb-0.5">{product.name}</p>
+                    <p className="text-[10px] text-faint mb-2">{product.unit}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-white">₹{product.discountPrice || product.price}</span>
+                      <span className="text-xs font-black text-body">₹{product.discountPrice || product.price}</span>
                       {inCart ? (
                         <div className="flex items-center gap-1">
-                          <button className="w-5 h-5 rounded-md bg-yellow-400/15 text-yellow-400 text-xs font-black flex items-center justify-center">−</button>
-                          <span className="text-xs font-bold text-white w-4 text-center">{inCart.quantity}</span>
-                          <button className="w-5 h-5 rounded-md bg-yellow-400/15 text-yellow-400 text-xs font-black flex items-center justify-center">+</button>
+                          <button onClick={() => inCart.quantity === 1 ? removeFromCart(product.id) : updateQuantity(product.id, inCart.quantity - 1)} className="w-5 h-5 rounded-md bg-orange-500/15 text-accent text-xs font-black flex items-center justify-center">−</button>
+                          <span className="text-xs font-bold text-body w-4 text-center">{inCart.quantity}</span>
+                          <button onClick={() => updateQuantity(product.id, inCart.quantity + 1)} className="w-5 h-5 rounded-md bg-orange-500/15 text-accent text-xs font-black flex items-center justify-center">+</button>
                         </div>
                       ) : (
                         <button onClick={() => {
                           addToCart({ productId: product.id, shopId: product.shopId, name: product.name, nameTamil: product.nameTamil, price: product.price, discountPrice: product.discountPrice, quantity: 1, unit: product.unit, isVeg: product.isVeg });
                           toast.success(`${product.name} added!`);
-                        }} className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-black transition-all hover:scale-110"
-                          style={{ background: 'rgba(251,191,36,0.15)', color: '#FBBF24', border: '1px solid rgba(251,191,36,0.25)' }}>
+                        }} className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-black transition-all hover:scale-110 bg-orange-500/15 text-accent border border-orange-500/25">
                           +
                         </button>
                       )}
@@ -184,17 +189,17 @@ export default function CartPage() {
         )}
 
         {/* Coupon */}
-        <div className="rounded-2xl border p-4" style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.07)' }}>
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <span>🎟️</span> Apply Coupon
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-bold text-body mb-3 flex items-center gap-2">
+            <Ticket size={15} className="text-accent" /> Apply Coupon
           </h3>
           {appliedCoupon ? (
-            <div className="flex items-center justify-between p-3 rounded-xl border" style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.2)' }}>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/8 border border-emerald-500/20">
               <div>
-                <p className="text-sm font-bold text-emerald-400">{appliedCoupon.code}</p>
-                <p className="text-xs text-white/40">{appliedCoupon.description}</p>
+                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{appliedCoupon.code}</p>
+                <p className="text-xs text-faint">{appliedCoupon.description}</p>
               </div>
-              <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className="text-xs text-red-400 hover:text-red-300 font-semibold">Remove</button>
+              <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className="text-xs text-red-500 hover:text-red-400 font-semibold">Remove</button>
             </div>
           ) : (
             <div className="flex gap-2">
@@ -203,12 +208,11 @@ export default function CartPage() {
               <button onClick={applyCoupon} className="btn-primary px-4 py-2.5 text-sm">Apply</button>
             </div>
           )}
-          {couponError && <p className="text-xs text-red-400 mt-2">{couponError}</p>}
-          <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide">
+          {couponError && <p className="text-xs text-red-500 mt-2">{couponError}</p>}
+          <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
             {SEED_COUPONS.filter(c => c.isActive).map(c => (
               <button key={c.id} onClick={() => { setCouponCode(c.code); setCouponError(''); }}
-                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', color: '#FBBF24' }}>
+                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-orange-500/8 border border-orange-500/20 text-accent">
                 {c.code}
               </button>
             ))}
@@ -216,35 +220,41 @@ export default function CartPage() {
         </div>
 
         {/* Delivery Address */}
-        <div className="rounded-2xl border p-4" style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.07)' }}>
+        <div className="glass-card p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2"><span>📍</span> Delivery Address</h3>
-            <Link href="/profile" className="text-xs text-yellow-400 font-semibold">Change</Link>
+            <h3 className="text-sm font-bold text-body flex items-center gap-2"><MapPin size={15} className="text-accent" /> Delivery Address</h3>
+            <Link href="/profile" className="text-xs text-accent font-semibold">Change</Link>
           </div>
-          <div className="p-3 rounded-xl border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)' }}>
-            <p className="text-xs font-bold text-white">🏠 Home</p>
-            <p className="text-xs text-white/40 mt-0.5">123, East Main Road, Thanjavur - 613001</p>
-          </div>
+          {selectedAddress ? (
+            <div className="p-3 glass-sm">
+              <p className="text-xs font-bold text-body">{selectedAddress.label}</p>
+              <p className="text-xs text-faint mt-0.5">{selectedAddress.fullAddress} - {selectedAddress.pincode}</p>
+            </div>
+          ) : (
+            <Link href="/profile" className="block p-3 border border-dashed border-subtle rounded-xl text-center text-xs text-muted hover:border-orange-400/40 hover:text-accent transition-colors">
+              + Add Delivery Address
+            </Link>
+          )}
         </div>
 
         {/* Bill Summary */}
-        <div className="rounded-2xl border p-4" style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.07)' }}>
-          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><span>🧾</span> Bill Summary</h3>
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-bold text-body mb-4 flex items-center gap-2"><Receipt size={15} className="text-accent" /> Bill Summary</h3>
           <div className="space-y-2.5">
             {[
               { label: 'Subtotal', value: `₹${subtotal}` },
-              { label: `Delivery${subtotal >= 500 ? ' (Free!)' : ''}`, value: deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`, color: deliveryCharge === 0 ? 'text-emerald-400' : '' },
-              ...(discount > 0 ? [{ label: `Discount (${appliedCoupon?.code})`, value: `-₹${discount}`, color: 'text-emerald-400' }] : []),
+              { label: `Delivery${subtotal >= 500 ? ' (Free!)' : ''}`, value: deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`, color: deliveryCharge === 0 ? 'text-emerald-600 dark:text-emerald-400' : '' },
+              ...(discount > 0 ? [{ label: `Discount (${appliedCoupon?.code})`, value: `-₹${discount}`, color: 'text-emerald-600 dark:text-emerald-400' }] : []),
             ].map(row => (
               <div key={row.label} className="flex items-center justify-between">
-                <span className="text-sm text-white/50">{row.label}</span>
-                <span className={`text-sm font-semibold ${row.color || 'text-white'}`}>{row.value}</span>
+                <span className="text-sm text-muted">{row.label}</span>
+                <span className={`text-sm font-semibold ${row.color || 'text-body'}`}>{row.value}</span>
               </div>
             ))}
-            <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            <div className="divider" />
             <div className="flex items-center justify-between">
-              <span className="text-base font-black text-white">Total</span>
-              <span className="text-base font-black text-yellow-400">₹{total}</span>
+              <span className="text-base font-black text-body">Total</span>
+              <span className="text-base font-black text-accent">₹{total}</span>
             </div>
           </div>
         </div>

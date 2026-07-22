@@ -18,7 +18,7 @@ export default function Skeleton({
   height,
   count = 1,
 }: SkeletonProps) {
-  const baseStyles = 'animate-pulse bg-dark-400/60';
+  const baseStyles = 'skeleton';
 
   const variants = {
     text: 'h-4 rounded-md',
@@ -47,7 +47,7 @@ export default function Skeleton({
 // Pre-built skeleton patterns
 export function ShopCardSkeleton() {
   return (
-    <div className="bg-dark-500/60 backdrop-blur-xl border border-dark-50/20 rounded-2xl p-4 space-y-3">
+    <div className="glass-card p-4 space-y-3">
       <Skeleton variant="rounded" height={120} className="w-full" />
       <Skeleton width="70%" height={16} />
       <Skeleton width="50%" height={12} />
@@ -62,7 +62,7 @@ export function ShopCardSkeleton() {
 
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-dark-500/60 backdrop-blur-xl border border-dark-50/20 rounded-2xl p-3 space-y-2">
+    <div className="glass-card p-3 space-y-2">
       <Skeleton variant="rounded" height={100} className="w-full" />
       <Skeleton width="80%" height={14} />
       <Skeleton width="40%" height={12} />

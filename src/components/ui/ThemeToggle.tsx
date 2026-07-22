@@ -13,7 +13,7 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ variant = 'icon', className = '' }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

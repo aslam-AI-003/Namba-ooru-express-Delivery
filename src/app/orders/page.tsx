@@ -2,25 +2,30 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
+import {
+  ArrowLeft, X, PartyPopper, Lock, Package, ClipboardList, CheckCircle2,
+  ChefHat, Bike, XCircle, Star,
+} from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { rateOrder, cancelOrder, addNotification } from '@/lib/firebaseService';
 import type { Order } from '@/lib/firebaseService';
 import toast from 'react-hot-toast';
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: string }> = {
-  placed:     { label: 'Order Placed',   color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    icon: '📋' },
-  confirmed:  { label: 'Confirmed',      color: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  icon: '✅' },
-  preparing:  { label: 'Preparing',      color: 'text-yellow-400',  bg: 'bg-yellow-500/10',  border: 'border-yellow-500/20',  icon: '👨‍🍳' },
-  ready:      { label: 'Ready',          color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: '📦' },
-  in_transit: { label: 'On the Way',     color: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20',  icon: '🛵' },
-  delivered:  { label: 'Delivered',      color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: '🎉' },
-  cancelled:  { label: 'Cancelled',      color: 'text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/20',     icon: '❌' },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: React.ElementType }> = {
+  placed:     { label: 'Order Placed',   color: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    icon: ClipboardList },
+  confirmed:  { label: 'Confirmed',      color: 'text-purple-600 dark:text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  icon: CheckCircle2 },
+  preparing:  { label: 'Preparing',      color: 'text-amber-600 dark:text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  icon: ChefHat },
+  ready:      { label: 'Ready',          color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: Package },
+  in_transit: { label: 'On the Way',     color: 'text-orange-600 dark:text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20',  icon: Bike },
+  delivered:  { label: 'Delivered',      color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: PartyPopper },
+  cancelled:  { label: 'Cancelled',      color: 'text-red-600 dark:text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/20',     icon: XCircle },
 };
 
 const TABS = ['All', 'Active', 'Delivered', 'Cancelled'];
 const STEPS = ['placed', 'confirmed', 'preparing', 'in_transit', 'delivered'];
-const STEP_ICONS = ['📋', '✅', '👨‍🍳', '🛵', '🎉'];
+const STEP_ICONS = [ClipboardList, CheckCircle2, ChefHat, Bike, PartyPopper];
 
 function SuccessBanner({ onClose }: { onClose: () => void }) {
   const searchParams = useSearchParams();
@@ -35,11 +40,12 @@ function SuccessBanner({ onClose }: { onClose: () => void }) {
   if (!show) return null;
   return (
     <div className="fixed top-4 left-4 right-4 z-[100]" style={{ animation: 'slideUp 0.4s ease' }}>
-      <div className="max-w-md mx-auto p-4 rounded-2xl border backdrop-blur-xl flex items-center gap-3"
-        style={{ background: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)' }}>
-        <div className="text-3xl">🎉</div>
-        <div><p className="font-black text-emerald-400">Order Placed!</p><p className="text-xs text-white/60">Your order is being prepared</p></div>
-        <button onClick={() => { setShow(false); onClose(); }} className="ml-auto text-white/30 hover:text-white/60 text-lg">✕</button>
+      <div className="max-w-md mx-auto p-4 rounded-2xl border backdrop-blur-xl flex items-center gap-3 bg-emerald-500/12 border-emerald-500/30 shadow-lg">
+        <div className="w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+          <PartyPopper size={20} className="text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <div><p className="font-black text-emerald-600 dark:text-emerald-400">Order Placed!</p><p className="text-xs text-secondary">Your order is being prepared</p></div>
+        <button onClick={() => { setShow(false); onClose(); }} className="ml-auto text-faint hover:text-secondary"><X size={18} /></button>
       </div>
     </div>
   );
@@ -51,42 +57,40 @@ function RatingModal({ order, onClose, onSubmit }: { order: Order; onClose: () =
   const [review, setReview] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const QUICK_TAGS = ['Fast Delivery', 'Fresh Items', 'Good Packaging', 'Friendly Rider', 'Value for Money', 'Will Order Again'];
+  const RATING_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.15)' }} />
+        <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-[var(--card-border)]" />
         <div className="text-center mb-5">
-          <div className="text-4xl mb-2">{order.shopIcon}</div>
-          <h2 className="font-black text-white text-lg">Rate Your Order</h2>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{order.shopName} • {order.id?.slice(-8).toUpperCase()}</p>
+          <div className="w-16 h-16 rounded-xl overflow-hidden relative mx-auto mb-2">
+            <Image src={order.shopIcon || '/images/categories/groceries.jpg'} alt={order.shopName} fill sizes="64px" className="object-cover" />
+          </div>
+          <h2 className="font-black text-body text-lg">Rate Your Order</h2>
+          <p className="text-xs mt-0.5 text-faint">{order.shopName} • {order.id?.slice(-8).toUpperCase()}</p>
         </div>
         <div className="flex justify-center gap-3 mb-4">
           {[1,2,3,4,5].map(star => (
             <button key={star}
               onMouseEnter={() => setHovered(star)} onMouseLeave={() => setHovered(0)}
               onClick={() => setRating(star)}
-              className="text-4xl transition-all duration-150"
-              style={{ transform: (hovered || rating) >= star ? 'scale(1.2)' : 'scale(1)', filter: (hovered || rating) >= star ? 'none' : 'grayscale(1) opacity(0.3)' }}>
-              ⭐
+              className="transition-all duration-150"
+              style={{ transform: (hovered || rating) >= star ? 'scale(1.15)' : 'scale(1)' }}>
+              <Star size={32} fill={(hovered || rating) >= star ? '#F97316' : 'none'} stroke={(hovered || rating) >= star ? '#F97316' : 'var(--card-border)'} />
             </button>
           ))}
         </div>
         {rating > 0 && (
-          <p className="text-center text-sm font-bold mb-4" style={{ color: '#FBBF24' }}>
-            {['', 'Poor 😞', 'Fair 😐', 'Good 🙂', 'Great 😊', 'Excellent! 🤩'][rating]}
+          <p className="text-center text-sm font-bold mb-4 text-accent">
+            {RATING_LABELS[rating]}
           </p>
         )}
         {rating >= 4 && (
           <div className="flex flex-wrap gap-2 mb-4 justify-center">
             {QUICK_TAGS.map(tag => (
               <button key={tag} onClick={() => setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
-                className="px-3 py-1.5 rounded-full text-xs font-bold transition-all"
-                style={{
-                  background: tags.includes(tag) ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${tags.includes(tag) ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                  color: tags.includes(tag) ? '#FBBF24' : 'rgba(255,255,255,0.5)',
-                }}>
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${tags.includes(tag) ? 'bg-orange-500/15 border-orange-500/40 text-accent' : 'surface text-muted'}`}>
                 {tag}
               </button>
             ))}
@@ -106,7 +110,7 @@ function RatingModal({ order, onClose, onSubmit }: { order: Order; onClose: () =
 }
 
 export default function OrdersPage() {
-  const { orders, user, demoOrders } = useStore();
+  const { orders, user, demoOrders, updateDemoOrderStatus } = useStore();
   const [activeTab, setActiveTab] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [ratingOrder, setRatingOrder] = useState<Order | null>(null);
@@ -133,6 +137,10 @@ export default function OrdersPage() {
       notes: d.notes,
       riderId: d.riderId,
       riderName: d.riderName,
+      rating: d.rating,
+      review: d.review,
+      createdAt: d.createdAt as any,
+      updatedAt: d.updatedAt as any,
     } as Order)),
     ...orders,
   ];
@@ -144,11 +152,18 @@ export default function OrdersPage() {
     return true;
   });
 
+  const isDemoOrder = (orderId: string) => demoOrders.some(d => d.id === orderId);
+
   const handleRatingSubmit = async (order: Order, rating: number, review: string) => {
     try {
-      await rateOrder(order.id!, rating, review);
+      const demoOrder = demoOrders.find(d => d.id === order.id);
+      if (demoOrder) {
+        updateDemoOrderStatus(demoOrder.id, demoOrder.status, { rating, review });
+      } else {
+        await rateOrder(order.id!, rating, review);
+      }
       setRatingOrder(null);
-      toast.success(`Thanks for your ${rating}⭐ review!`);
+      toast.success(`Thanks for your ${rating}-star review!`);
     } catch {
       toast.error('Failed to submit review');
     }
@@ -158,7 +173,11 @@ export default function OrdersPage() {
     if (!user) return;
     setCancelling(order.id!);
     try {
-      await cancelOrder(order.id!);
+      if (isDemoOrder(order.id!)) {
+        updateDemoOrderStatus(order.id!, 'cancelled');
+      } else {
+        await cancelOrder(order.id!);
+      }
       await addNotification(user.uid, {
         type: 'order',
         icon: '❌',
@@ -166,7 +185,7 @@ export default function OrdersPage() {
         body: `Your order from ${order.shopName} has been cancelled.`,
         read: false,
         orderId: order.id,
-      });
+      }).catch(() => {});
       toast.success('Order cancelled');
     } catch {
       toast.error('Failed to cancel order');
@@ -191,19 +210,19 @@ export default function OrdersPage() {
       <header className="sticky top-0 z-50 header-glass">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/" className="btn-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <ArrowLeft size={18} />
           </Link>
-          <h1 className="font-bold text-white flex-1">My Orders</h1>
-          <Link href="/track" className="text-xs text-yellow-400 font-semibold">Track →</Link>
+          <h1 className="font-bold text-body flex-1">My Orders</h1>
+          <Link href="/track" className="text-xs text-accent font-semibold">Track →</Link>
         </div>
       </header>
 
       <div className="max-w-5xl mx-auto px-4 pt-4">
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-xl mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex gap-1 p-1 rounded-xl mb-4 surface">
           {TABS.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab ? 'bg-yellow-400 text-black' : 'text-white/50 hover:text-white/70'}`}>
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab ? 'bg-orange-500 text-white' : 'text-muted hover:text-secondary'}`}>
               {tab}
             </button>
           ))}
@@ -211,15 +230,15 @@ export default function OrdersPage() {
 
         {!user ? (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">🔐</div>
-            <h3 className="text-lg font-bold text-white/60">Login to see your orders</h3>
+            <Lock size={44} className="text-faint mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-muted">Login to see your orders</h3>
             <Link href="/auth/login" className="btn-primary mt-5 inline-flex">Login →</Link>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">📦</div>
-            <h3 className="text-lg font-bold text-white/60">No orders yet</h3>
-            <p className="text-sm text-white/30 mt-1">Start ordering from nearby shops</p>
+            <Package size={44} className="text-faint mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-muted">No orders yet</h3>
+            <p className="text-sm text-faint mt-1">Start ordering from nearby shops</p>
             <Link href="/shops" className="btn-primary mt-5 inline-flex">Browse Shops →</Link>
           </div>
         ) : (
@@ -230,29 +249,27 @@ export default function OrdersPage() {
               const isActive = STEPS.slice(0, 4).includes(order.status);
 
               return (
-                <div key={order.id} className="rounded-2xl border p-4 cursor-pointer transition-all hover:border-white/15"
-                  style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.07)' }}
+                <div key={order.id} className="glass-card p-4 cursor-pointer hover:border-orange-400/25 transition-all"
                   onClick={() => setSelectedOrder(order)}>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                        style={{ background: 'rgba(255,255,255,0.05)' }}>
-                        {order.shopIcon}
+                      <div className="w-10 h-10 rounded-xl overflow-hidden relative flex-shrink-0">
+                        <Image src={order.shopIcon || '/images/categories/groceries.jpg'} alt={order.shopName} fill sizes="40px" className="object-cover" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs font-black" style={{ color: 'rgba(255,255,255,0.35)' }}>#{order.id?.slice(-8).toUpperCase()}</span>
-                          <span style={{ color: 'rgba(255,255,255,0.15)' }}>•</span>
-                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{formatDate(order.createdAt)}</span>
+                          <span className="text-xs font-black text-faint">#{order.id?.slice(-8).toUpperCase()}</span>
+                          <span className="text-faint">•</span>
+                          <span className="text-xs text-faint">{formatDate(order.createdAt)}</span>
                         </div>
-                        <h3 className="font-bold text-white">{order.shopName}</h3>
-                        <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                        <h3 className="font-bold text-body">{order.shopName}</h3>
+                        <p className="text-xs truncate mt-0.5 text-faint">
                           {order.items.map(i => i.name).join(', ')}
                         </p>
                       </div>
                     </div>
                     <div className={`badge ${cfg.bg} ${cfg.color} ${cfg.border} flex-shrink-0 text-[10px]`}>
-                      {cfg.icon} {cfg.label}
+                      <cfg.icon size={11} /> {cfg.label}
                     </div>
                   </div>
 
@@ -260,16 +277,19 @@ export default function OrdersPage() {
                   {isActive && (
                     <div className="mb-3">
                       <div className="flex justify-between mb-1.5">
-                        {STEPS.map((s, i) => (
-                          <div key={s} className={`flex flex-col items-center gap-1 ${i <= currentIdx ? 'opacity-100' : 'opacity-20'}`}>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${i <= currentIdx ? 'bg-yellow-400 text-black' : 'bg-white/10 text-white/40'}`}>
-                              {STEP_ICONS[i]}
+                        {STEPS.map((s, i) => {
+                          const StepIcon = STEP_ICONS[i];
+                          return (
+                            <div key={s} className={`flex flex-col items-center gap-1 ${i <= currentIdx ? 'opacity-100' : 'opacity-25'}`}>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${i <= currentIdx ? 'bg-orange-500 text-white' : 'bg-[var(--bg3)] text-faint'}`}>
+                                <StepIcon size={12} />
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
-                      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                        <div className="h-full rounded-full bg-yellow-400 transition-all" style={{ width: `${(currentIdx + 1) * 20}%` }} />
+                      <div className="h-1 rounded-full overflow-hidden bg-[var(--bg3)]">
+                        <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${(currentIdx + 1) * 20}%` }} />
                       </div>
                     </div>
                   )}
@@ -278,43 +298,39 @@ export default function OrdersPage() {
                   {order.status === 'delivered' && order.rating && (
                     <div className="flex items-center gap-1 mb-2">
                       {[1,2,3,4,5].map(s => (
-                        <span key={s} className="text-sm" style={{ filter: s <= (order.rating || 0) ? 'none' : 'grayscale(1) opacity(0.3)' }}>⭐</span>
+                        <Star key={s} size={13} fill={s <= (order.rating || 0) ? '#F97316' : 'none'} stroke={s <= (order.rating || 0) ? '#F97316' : 'var(--card-border)'} />
                       ))}
-                      <span className="text-xs ml-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Your rating</span>
+                      <span className="text-xs ml-1 text-faint">Your rating</span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-black text-white">₹{order.total}</span>
-                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{order.paymentMethod}</span>
+                      <span className="text-sm font-black text-body">₹{order.total}</span>
+                      <span className="text-xs text-faint">{order.paymentMethod}</span>
                     </div>
                     <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                       {order.status === 'delivered' && !order.rating && (
                         <button onClick={() => setRatingOrder(order)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                          style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#FBBF24' }}>
-                          Rate ⭐
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-orange-500/10 border border-orange-500/25 text-accent flex items-center gap-1">
+                          <Star size={11} /> Rate
                         </button>
                       )}
                       {order.status === 'in_transit' && (
-                        <Link href="/track" className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                          style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', color: '#F97316' }}>
-                          Track 🛵
+                        <Link href="/track" className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-orange-500/10 border border-orange-500/25 text-accent flex items-center gap-1">
+                          <Bike size={11} /> Track
                         </Link>
                       )}
                       {['placed', 'confirmed', 'preparing'].includes(order.status) && (
                         <button
                           disabled={cancelling === order.id}
                           onClick={() => handleCancel(order)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444' }}>
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 bg-red-500/10 border border-red-500/25 text-red-500 dark:text-red-400">
                           {cancelling === order.id ? '...' : 'Cancel'}
                         </button>
                       )}
                       {order.status === 'delivered' && (
-                        <Link href="/shops" className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
+                        <Link href="/shops" className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors surface text-secondary">
                           Reorder
                         </Link>
                       )}
@@ -331,11 +347,11 @@ export default function OrdersPage() {
       {selectedOrder && (
         <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.15)' }} />
+            <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-[var(--card-border)]" />
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-black text-white">Order Details</h2>
+              <h2 className="font-black text-body">Order Details</h2>
               <button onClick={() => setSelectedOrder(null)} className="btn-icon w-8 h-8">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <X size={16} />
               </button>
             </div>
             <div className="space-y-3">
@@ -347,31 +363,31 @@ export default function OrdersPage() {
                 { label: 'Address', value: selectedOrder.address?.fullAddress || '' },
               ].map(row => (
                 <div key={row.label} className="flex justify-between gap-4">
-                  <span className="text-sm flex-shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }}>{row.label}</span>
-                  <span className="text-sm font-bold text-white text-right">{row.value}</span>
+                  <span className="text-sm flex-shrink-0 text-faint">{row.label}</span>
+                  <span className="text-sm font-bold text-body text-right">{row.value}</span>
                 </div>
               ))}
-              <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="divider" />
               {selectedOrder.items.map((item, i) => (
                 <div key={i} className="flex justify-between">
-                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>{item.name} × {item.quantity}</span>
-                  <span className="text-sm font-semibold text-white">₹{(item.discountPrice || item.price) * item.quantity}</span>
+                  <span className="text-sm text-secondary">{item.name} × {item.quantity}</span>
+                  <span className="text-sm font-semibold text-body">₹{(item.discountPrice || item.price) * item.quantity}</span>
                 </div>
               ))}
-              <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="divider" />
               <div className="flex justify-between text-sm">
-                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Delivery</span>
-                <span className={selectedOrder.deliveryCharge === 0 ? 'text-emerald-400 font-bold' : 'text-white'}>
+                <span className="text-faint">Delivery</span>
+                <span className={selectedOrder.deliveryCharge === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-body'}>
                   {selectedOrder.deliveryCharge === 0 ? 'FREE' : `₹${selectedOrder.deliveryCharge}`}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="font-black text-white">Total</span>
-                <span className="font-black text-yellow-400">₹{selectedOrder.total}</span>
+                <span className="font-black text-body">Total</span>
+                <span className="font-black text-accent">₹{selectedOrder.total}</span>
               </div>
               {selectedOrder.status === 'delivered' && !selectedOrder.rating && (
                 <button onClick={() => { setSelectedOrder(null); setRatingOrder(selectedOrder); }}
-                  className="btn-primary w-full mt-2">Rate this order ⭐</button>
+                  className="btn-primary w-full mt-2">Rate this order</button>
               )}
             </div>
           </div>

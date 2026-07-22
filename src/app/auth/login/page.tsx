@@ -13,6 +13,7 @@ import { auth } from '@/lib/firebase';
 import { getUserProfile, createUserProfile } from '@/lib/firebaseService';
 import { useStore } from '@/store/useStore';
 import toast from 'react-hot-toast';
+import { Bike, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function LoginPage() {
         photoURL: profile?.photoURL || cred.user.photoURL || '',
         role: profile?.role || 'customer',
       });
-      toast.success('Welcome back! 🎉');
+      toast.success('Welcome back!');
       router.push('/');
     } catch (err: any) {
       const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
@@ -123,7 +124,7 @@ export default function LoginPage() {
         photoURL: profile?.photoURL || '',
         role: profile?.role || 'customer',
       });
-      toast.success('Welcome to NammaOoru! 🎉');
+      toast.success('Welcome to NammaOoru!');
       router.push('/');
     } catch (err: any) {
       const msg = err.code === 'auth/invalid-verification-code'
@@ -141,29 +142,29 @@ export default function LoginPage() {
     <div className="min-h-screen app-bg flex items-center justify-center px-4 py-8">
       {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-yellow-400/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-orange-400/8 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-md animate-scale-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl glow-yellow-sm">
-            <span className="text-3xl">🛵</span>
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+            <Bike size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-black text-white">Welcome Back!</h1>
-          <p className="text-sm text-white/40 mt-1">Sign in to continue ordering</p>
+          <h1 className="text-2xl font-black text-body">Welcome Back!</h1>
+          <p className="text-sm text-faint mt-1">Sign in to continue ordering</p>
         </div>
 
         {/* Card */}
         <div className="glass-strong p-6">
           {/* Tabs */}
-          <div className="flex gap-1 p-1 bg-white/[0.04] rounded-xl mb-6">
+          <div className="flex gap-1 p-1 surface rounded-xl mb-6">
             {(['email', 'phone'] as const).map(t => (
               <button key={t} onClick={() => { setTab(t); setOtpSent(false); setOtp(''); }}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                  tab === t ? 'bg-yellow-400 text-black shadow-lg' : 'text-white/50 hover:text-white/70'
+                  tab === t ? 'bg-orange-500 text-white shadow-lg' : 'text-muted hover:text-secondary'
                 }`}>
-                {t === 'email' ? '📧 Email' : '📱 Phone'}
+                {t === 'email' ? 'Email' : 'Phone'}
               </button>
             ))}
           </div>
@@ -171,10 +172,10 @@ export default function LoginPage() {
           {tab === 'email' ? (
             <form onSubmit={handleEmailLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">Email Address</label>
+                <label className="block text-xs font-semibold text-muted mb-2 uppercase tracking-wider">Email Address</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-faint">
+                    <Mail size={16} />
                   </span>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="you@example.com" className="input-glass pl-11" required />
@@ -182,22 +183,22 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">Password</label>
+                <label className="block text-xs font-semibold text-muted mb-2 uppercase tracking-wider">Password</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-faint">
+                    <Lock size={16} />
                   </span>
                   <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                     placeholder="Enter password" className="input-glass pl-11 pr-11" required />
                   <button type="button" onClick={() => setShowPass(!showPass)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
-                    {showPass ? '🙈' : '👁️'}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-faint hover:text-secondary transition-colors">
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
               <div className="flex justify-end">
-                <Link href="/auth/forgot-password" className="text-xs text-yellow-400 hover:text-yellow-300 transition-colors">
+                <Link href="/auth/forgot-password" className="text-xs text-accent hover:opacity-80 transition-opacity">
                   Forgot password?
                 </Link>
               </div>
@@ -206,7 +207,7 @@ export default function LoginPage() {
                 className="btn-primary w-full py-3.5 text-base disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    <Loader2 size={16} className="animate-spin" />
                     Signing in...
                   </span>
                 ) : 'Sign In →'}
@@ -215,10 +216,10 @@ export default function LoginPage() {
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">Phone Number</label>
+                <label className="block text-xs font-semibold text-muted mb-2 uppercase tracking-wider">Phone Number</label>
                 <div className="flex gap-2">
-                  <div className="flex items-center gap-2 px-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white/60 flex-shrink-0">
-                    🇮🇳 +91
+                  <div className="flex items-center gap-2 px-3 surface rounded-xl text-sm text-secondary flex-shrink-0">
+                    +91
                   </div>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="9876543210" className="input-glass flex-1" maxLength={10}
@@ -228,11 +229,11 @@ export default function LoginPage() {
 
               {otpSent && (
                 <div className="animate-slide-up">
-                  <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">Enter OTP</label>
+                  <label className="block text-xs font-semibold text-muted mb-2 uppercase tracking-wider">Enter OTP</label>
                   <input type="text" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="6-digit OTP" className="input-glass text-center text-xl tracking-widest" maxLength={6} autoFocus />
                   <button onClick={() => { setOtpSent(false); setOtp(''); }}
-                    className="text-xs text-yellow-400 mt-2 hover:text-yellow-300">
+                    className="text-xs text-accent mt-2 hover:opacity-80">
                     ← Change number
                   </button>
                 </div>
@@ -246,7 +247,7 @@ export default function LoginPage() {
                   className="btn-primary w-full py-3.5 text-base disabled:opacity-50">
                   {loading ? (
                     <span className="flex items-center gap-2">
-                      <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                      <Loader2 size={16} className="animate-spin" />
                       Sending OTP...
                     </span>
                   ) : 'Send OTP →'}
@@ -256,10 +257,10 @@ export default function LoginPage() {
                   className="btn-primary w-full py-3.5 text-base disabled:opacity-50">
                   {loading ? (
                     <span className="flex items-center gap-2">
-                      <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                      <Loader2 size={16} className="animate-spin" />
                       Verifying...
                     </span>
-                  ) : 'Verify OTP ✓'}
+                  ) : 'Verify OTP'}
                 </button>
               )}
             </div>
@@ -268,7 +269,7 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 my-5">
             <div className="flex-1 divider" />
-            <span className="text-xs text-white/25 font-medium">OR</span>
+            <span className="text-xs text-faint font-medium">OR</span>
             <div className="flex-1 divider" />
           </div>
 
@@ -278,23 +279,23 @@ export default function LoginPage() {
             toast.success('Logged in as Demo User!');
             router.push('/');
           }} className="btn-secondary w-full py-3 text-sm">
-            🎭 Continue as Demo User
+            Continue as Demo User
           </button>
         </div>
 
         {/* Register link */}
-        <p className="text-center text-sm text-white/40 mt-6">
+        <p className="text-center text-sm text-muted mt-6">
           New to NammaOoru?{' '}
-          <Link href="/auth/register" className="text-yellow-400 font-bold hover:text-yellow-300 transition-colors">
+          <Link href="/auth/register" className="text-accent font-bold hover:opacity-80 transition-opacity">
             Create Account →
           </Link>
         </p>
 
         {/* Partner links */}
         <div className="flex items-center justify-center gap-4 mt-4">
-          <Link href="/shop/register" className="text-xs text-white/25 hover:text-white/50 transition-colors">Register Shop</Link>
-          <span className="text-white/15">•</span>
-          <Link href="/rider/register" className="text-xs text-white/25 hover:text-white/50 transition-colors">Become Rider</Link>
+          <Link href="/shop/register" className="text-xs text-faint hover:text-secondary transition-colors">Register Shop</Link>
+          <span className="text-faint">•</span>
+          <Link href="/rider/register" className="text-xs text-faint hover:text-secondary transition-colors">Become Rider</Link>
         </div>
       </div>
     </div>

@@ -1,8 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft, Receipt, MapPin, Zap, CreditCard, Smartphone, Wallet, Banknote,
+  StickyNote, Loader2, PartyPopper,
+} from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { SEED_SHOPS } from '@/lib/seed-data';
 import {
@@ -13,18 +18,11 @@ import {
 import toast from 'react-hot-toast';
 
 const PAYMENT_METHODS = [
-  { id: 'upi', icon: '📱', label: 'UPI', desc: 'GPay, PhonePe, Paytm' },
-  { id: 'card', icon: '💳', label: 'Card', desc: 'Credit / Debit Card' },
-  { id: 'wallet', icon: '👛', label: 'Wallet', desc: 'NammaOoru Wallet' },
-  { id: 'cod', icon: '💵', label: 'Cash on Delivery', desc: 'Pay when delivered' },
+  { id: 'upi', icon: Smartphone, label: 'UPI', desc: 'GPay, PhonePe, Paytm' },
+  { id: 'card', icon: CreditCard, label: 'Card', desc: 'Credit / Debit Card' },
+  { id: 'wallet', icon: Wallet, label: 'Wallet', desc: 'NammaOoru Wallet' },
+  { id: 'cod', icon: Banknote, label: 'Cash on Delivery', desc: 'Pay when delivered' },
 ];
-
-const CATEGORY_ICONS: Record<string, string> = {
-  groceries: '🛒', vegetables: '🥬', meat: '🍗', medicines: '💊',
-  bakery: '🎂', restaurants: '🍽️', 'tea-shops': '☕', stationery: '✏️',
-  'pet-shop': '🐾', 'flower-shop': '🌸', electronics: '📱', courier: '📦',
-  'water-can': '💧', 'gas-cylinder': '🔥', milk: '🥛',
-};
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -38,6 +36,10 @@ export default function CheckoutPage() {
   const [upiId, setUpiId] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const orderPlacedRef = useRef(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const shop = SEED_SHOPS.find(s => s.id === cartShopId);
   const subtotal = getCartTotal();
@@ -45,11 +47,14 @@ export default function CheckoutPage() {
   const total = subtotal + deliveryCharge;
   const selectedAddress = addresses.find(a => a.id === selectedAddressId) || addresses[0];
 
-  if (cart.length === 0) {
-    if (typeof window !== 'undefined') router.push('/cart');
+  useEffect(() => {
+    if (mounted && cart.length === 0 && !orderPlacedRef.current) router.push('/cart');
+  }, [mounted, cart.length, router]);
+
+  if (!mounted || (cart.length === 0 && !orderPlacedRef.current)) {
     return (
       <div className="min-h-screen app-bg flex items-center justify-center">
-        <div className="text-white/40 text-sm">Redirecting...</div>
+        <div className="text-muted text-sm">Redirecting...</div>
       </div>
     );
   }
@@ -75,7 +80,7 @@ export default function CheckoutPage() {
 
     setLoading(true);
     try {
-      const shopIcon = shop ? (CATEGORY_ICONS[shop.categoryId] || '🏪') : '🏪';
+      const shopIcon = shop?.images.banner || '/images/categories/groceries.jpg';
       const now = new Date().toISOString();
       const orderId = 'NOE-' + Date.now().toString(36).toUpperCase().slice(-6);
 
@@ -123,6 +128,7 @@ export default function CheckoutPage() {
       }
 
       // 4. Clear cart
+      orderPlacedRef.current = true;
       clearCart();
 
       toast.success('🎉 Order placed successfully!');
@@ -140,9 +146,9 @@ export default function CheckoutPage() {
       <header className="sticky top-0 z-50 header-glass">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/cart" className="btn-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <ArrowLeft size={18} />
           </Link>
-          <h1 className="font-bold text-white">Checkout</h1>
+          <h1 className="font-bold text-body">Checkout</h1>
         </div>
       </header>
 
@@ -150,40 +156,42 @@ export default function CheckoutPage() {
 
         {/* Order Summary */}
         <div className="glass-card p-4">
-          <h3 className="text-sm font-bold text-white mb-3">🧾 Order Summary</h3>
+          <h3 className="text-sm font-bold text-body mb-3 flex items-center gap-2"><Receipt size={15} className="text-accent" /> Order Summary</h3>
           {shop && (
-            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/[0.06]">
-              <span className="text-xl">{CATEGORY_ICONS[shop.categoryId] || '🏪'}</span>
-              <span className="text-sm font-bold text-white">{shop.name}</span>
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-subtle">
+              <div className="w-8 h-8 rounded-lg overflow-hidden relative flex-shrink-0">
+                <Image src={shop.images.banner || '/images/categories/groceries.jpg'} alt={shop.name} fill sizes="32px" className="object-cover" />
+              </div>
+              <span className="text-sm font-bold text-body">{shop.name}</span>
             </div>
           )}
           <div className="space-y-2 mb-3">
             {cart.map(item => (
               <div key={item.productId} className="flex items-center justify-between">
-                <span className="text-sm text-white/70">{item.name} × {item.quantity}</span>
-                <span className="text-sm font-semibold text-white">₹{(item.discountPrice || item.price) * item.quantity}</span>
+                <span className="text-sm text-secondary">{item.name} × {item.quantity}</span>
+                <span className="text-sm font-semibold text-body">₹{(item.discountPrice || item.price) * item.quantity}</span>
               </div>
             ))}
           </div>
           <div className="divider mb-3" />
           <div className="space-y-1.5">
             <div className="flex justify-between text-sm">
-              <span className="text-white/50">Subtotal</span>
-              <span className="text-white">₹{subtotal}</span>
+              <span className="text-muted">Subtotal</span>
+              <span className="text-body">₹{subtotal}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-white/50">Delivery</span>
-              <span className={deliveryCharge === 0 ? 'text-emerald-400 font-bold' : 'text-white'}>
+              <span className="text-muted">Delivery</span>
+              <span className={deliveryCharge === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-body'}>
                 {deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`}
               </span>
             </div>
             {deliveryCharge > 0 && (
-              <p className="text-[10px] text-white/30">Add ₹{500 - subtotal} more for free delivery</p>
+              <p className="text-[10px] text-faint">Add ₹{500 - subtotal} more for free delivery</p>
             )}
             <div className="divider my-1" />
             <div className="flex justify-between">
-              <span className="font-black text-white">Total</span>
-              <span className="font-black text-yellow-400 text-lg">₹{total}</span>
+              <span className="font-black text-body">Total</span>
+              <span className="font-black text-accent text-lg">₹{total}</span>
             </div>
           </div>
         </div>
@@ -191,17 +199,17 @@ export default function CheckoutPage() {
         {/* Delivery Address */}
         <div className="glass-card p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-white">📍 Delivery Address</h3>
-            <Link href="/profile" className="text-xs text-yellow-400 font-semibold">Change</Link>
+            <h3 className="text-sm font-bold text-body flex items-center gap-2"><MapPin size={15} className="text-accent" /> Delivery Address</h3>
+            <Link href="/profile" className="text-xs text-accent font-semibold">Change</Link>
           </div>
           {selectedAddress ? (
-            <div className="p-3 bg-yellow-400/5 border border-yellow-400/15 rounded-xl">
-              <p className="text-xs font-bold text-yellow-400">{selectedAddress.label}</p>
-              <p className="text-sm text-white mt-0.5">{selectedAddress.fullAddress}</p>
-              <p className="text-xs text-white/40 mt-0.5">{selectedAddress.city} - {selectedAddress.pincode}</p>
+            <div className="p-3 bg-orange-500/6 border border-orange-500/20 rounded-xl">
+              <p className="text-xs font-bold text-accent">{selectedAddress.label}</p>
+              <p className="text-sm text-body mt-0.5">{selectedAddress.fullAddress}</p>
+              <p className="text-xs text-faint mt-0.5">{selectedAddress.city} - {selectedAddress.pincode}</p>
             </div>
           ) : (
-            <Link href="/profile" className="block p-3 border border-dashed border-white/20 rounded-xl text-center text-sm text-white/40 hover:border-yellow-400/30 hover:text-yellow-400 transition-colors">
+            <Link href="/profile" className="block p-3 border border-dashed border-subtle rounded-xl text-center text-sm text-muted hover:border-orange-400/40 hover:text-accent transition-colors">
               + Add Delivery Address
             </Link>
           )}
@@ -209,32 +217,34 @@ export default function CheckoutPage() {
 
         {/* Delivery Time */}
         <div className="glass-sm p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-yellow-400/10 rounded-xl flex items-center justify-center text-xl">⚡</div>
+          <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">
+            <Zap size={18} className="text-accent" />
+          </div>
           <div>
-            <p className="text-sm font-bold text-white">Estimated Delivery</p>
-            <p className="text-xs text-white/40">{(shop?.avgPrepTime || 20) + 15}–{(shop?.avgPrepTime || 20) + 25} minutes</p>
+            <p className="text-sm font-bold text-body">Estimated Delivery</p>
+            <p className="text-xs text-faint">{(shop?.avgPrepTime || 20) + 15}–{(shop?.avgPrepTime || 20) + 25} minutes</p>
           </div>
           <div className="ml-auto badge badge-success">On Time</div>
         </div>
 
         {/* Payment Method */}
         <div className="glass-card p-4">
-          <h3 className="text-sm font-bold text-white mb-3">💳 Payment Method</h3>
+          <h3 className="text-sm font-bold text-body mb-3 flex items-center gap-2"><CreditCard size={15} className="text-accent" /> Payment Method</h3>
           <div className="space-y-2">
             {PAYMENT_METHODS.map(pm => (
               <button key={pm.id} onClick={() => setPaymentMethod(pm.id)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === pm.id ? 'bg-yellow-400/8 border-yellow-400/30' : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]'}`}>
-                <span className="text-xl">{pm.icon}</span>
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${paymentMethod === pm.id ? 'bg-orange-500/8 border-orange-500/30' : 'surface hover:bg-[var(--card-hover)]'}`}>
+                <pm.icon size={20} className="text-accent flex-shrink-0" />
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold text-white">{pm.label}</p>
-                  <p className="text-xs text-white/35">
+                  <p className="text-sm font-semibold text-body">{pm.label}</p>
+                  <p className="text-xs text-faint">
                     {pm.id === 'wallet'
                       ? `Balance: ₹${walletBalance}${walletBalance < total ? ' (Insufficient)' : ''}`
                       : pm.desc}
                   </p>
                 </div>
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${paymentMethod === pm.id ? 'border-yellow-400' : 'border-white/20'}`}>
-                  {paymentMethod === pm.id && <div className="w-2 h-2 bg-yellow-400 rounded-full" />}
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${paymentMethod === pm.id ? 'border-orange-500' : 'border-[var(--card-border)]'}`}>
+                  {paymentMethod === pm.id && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
                 </div>
               </button>
             ))}
@@ -249,7 +259,7 @@ export default function CheckoutPage() {
 
         {/* Special Instructions */}
         <div className="glass-card p-4">
-          <h3 className="text-sm font-bold text-white mb-3">📝 Special Instructions</h3>
+          <h3 className="text-sm font-bold text-body mb-3 flex items-center gap-2"><StickyNote size={15} className="text-accent" /> Special Instructions</h3>
           <textarea value={notes} onChange={e => setNotes(e.target.value)}
             placeholder="Any special requests for the shop or delivery partner..."
             className="input-glass text-sm resize-none" rows={3} />
@@ -263,12 +273,8 @@ export default function CheckoutPage() {
           <button onClick={handlePlaceOrder} disabled={loading}
             className="btn-primary w-full py-4 text-base justify-between disabled:opacity-60">
             <span className="flex items-center gap-2">
-              {loading && (
-                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
-              )}
-              {loading ? 'Placing Order...' : '🎉 Place Order'}
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <PartyPopper size={16} />}
+              {loading ? 'Placing Order...' : 'Place Order'}
             </span>
             <span className="font-black">₹{total}</span>
           </button>

@@ -21,9 +21,9 @@ export default function Card({
   onClick,
 }: CardProps) {
   const variants = {
-    glass: 'bg-dark-500/60 backdrop-blur-xl border border-dark-50/20',
-    solid: 'bg-dark-500 border border-dark-50/10',
-    outline: 'bg-transparent border border-dark-50/30',
+    glass: 'surface',
+    solid: 'surface',
+    outline: 'bg-transparent border border-subtle',
   };
 
   const paddings = {
@@ -39,7 +39,7 @@ export default function Card({
         'rounded-2xl',
         variants[variant],
         paddings[padding],
-        hover && 'card-hover cursor-pointer',
+        hover && 'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] hover:border-orange-400/25 cursor-pointer',
         className
       )}
       onClick={onClick}

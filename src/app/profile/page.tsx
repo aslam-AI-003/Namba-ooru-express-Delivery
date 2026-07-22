@@ -2,8 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft, Pencil, Camera, UserRound, Package, Wallet, Heart, Bell,
+  Ticket, Users, LifeBuoy, FileText, Settings, MapPin, Home, Building2,
+  Check, Plus, ChevronRight, LogOut,
+} from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { updateUserProfile, addUserAddress, getUserAddresses } from '@/lib/firebaseService';
 import { signOut } from 'firebase/auth';
@@ -11,14 +15,14 @@ import { auth } from '@/lib/firebase';
 import toast from 'react-hot-toast';
 
 const MENU_ITEMS = [
-  { icon: '📦', label: 'My Orders', href: '/orders', badge: '' },
-  { icon: '❤️', label: 'Favourites', href: '/favorites', badge: '' },
-  { icon: '👛', label: 'My Wallet', href: '/wallet', badge: '' },
-  { icon: '🔔', label: 'Notifications', href: '/notifications', badge: '' },
-  { icon: '🎟️', label: 'Offers & Coupons', href: '/offers', badge: '' },
-  { icon: '🤝', label: 'Refer & Earn', href: '/offers', badge: '₹50' },
-  { icon: '🛟', label: 'Help & Support', href: '/support', badge: '' },
-  { icon: '📄', label: 'Terms & Privacy', href: '/terms', badge: '' },
+  { icon: Package, label: 'My Orders', href: '/orders', badge: '' },
+  { icon: Heart, label: 'Favourites', href: '/favorites', badge: '' },
+  { icon: Wallet, label: 'My Wallet', href: '/wallet', badge: '' },
+  { icon: Bell, label: 'Notifications', href: '/notifications', badge: '' },
+  { icon: Ticket, label: 'Offers & Coupons', href: '/offers', badge: '' },
+  { icon: Users, label: 'Refer & Earn', href: '/offers', badge: '₹50' },
+  { icon: LifeBuoy, label: 'Help & Support', href: '/support', badge: '' },
+  { icon: FileText, label: 'Terms & Privacy', href: '/terms', badge: '' },
 ];
 
 export default function ProfilePage() {
@@ -54,7 +58,7 @@ export default function ProfilePage() {
         email: draft.email.trim(),
       });
       setEditMode(false);
-      toast.success('Profile updated! ✓');
+      toast.success('Profile updated!');
     } catch {
       toast.error('Failed to update profile');
     } finally {
@@ -107,9 +111,9 @@ export default function ProfilePage() {
     return (
       <main className="min-h-screen app-bg flex items-center justify-center px-4">
         <div className="text-center">
-          <div className="text-6xl mb-4">👤</div>
-          <h2 className="text-xl font-black text-white mb-2">Not logged in</h2>
-          <p className="text-sm text-white/40 mb-6">Login to view your profile</p>
+          <UserRound size={48} className="text-faint mx-auto mb-4" />
+          <h2 className="text-xl font-black text-body mb-2">Not logged in</h2>
+          <p className="text-sm text-faint mb-6">Login to view your profile</p>
           <Link href="/auth/login" className="btn-primary">Login / Register →</Link>
         </div>
       </main>
@@ -123,13 +127,12 @@ export default function ProfilePage() {
       <header className="sticky top-0 z-50 header-glass">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/" className="btn-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <ArrowLeft size={18} />
           </Link>
-          <h1 className="font-bold text-white flex-1">My Profile</h1>
+          <h1 className="font-bold text-body flex-1">My Profile</h1>
           <button onClick={() => { setEditMode(!editMode); setDraft({ name: user.displayName || '', phone: user.phone || '', email: user.email || '' }); }}
-            className="text-xs font-bold transition-colors px-3 py-1.5 rounded-lg border"
-            style={{ background: editMode ? 'rgba(239,68,68,0.1)' : 'rgba(251,191,36,0.1)', borderColor: editMode ? 'rgba(239,68,68,0.25)' : 'rgba(251,191,36,0.25)', color: editMode ? '#EF4444' : '#FBBF24' }}>
-            {editMode ? 'Cancel' : '✏️ Edit'}
+            className={`text-xs font-bold transition-colors px-3 py-1.5 rounded-lg border flex items-center gap-1 ${editMode ? 'bg-red-500/10 border-red-500/25 text-red-500 dark:text-red-400' : 'bg-orange-500/10 border-orange-500/25 text-accent'}`}>
+            {editMode ? 'Cancel' : <><Pencil size={12} /> Edit</>}
           </button>
         </div>
       </header>
@@ -137,24 +140,21 @@ export default function ProfilePage() {
       <div className="max-w-5xl mx-auto px-4 pt-4 space-y-4">
 
         {/* Profile Card */}
-        <div className="relative overflow-hidden rounded-3xl border p-5"
-          style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.08), rgba(249,115,22,0.04))', borderColor: 'rgba(251,191,36,0.15)' }}>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.4), transparent)' }} />
+        <div className="relative overflow-hidden rounded-3xl border p-5 bg-gradient-to-br from-orange-400/10 to-orange-500/4 border-orange-400/20">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-0.5 rounded-full bg-gradient-to-r from-transparent via-orange-400/40 to-transparent" />
 
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center text-2xl font-black border"
-                style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.3), rgba(249,115,22,0.15))', borderColor: 'rgba(251,191,36,0.25)', color: '#FBBF24' }}>
+              <div className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center text-2xl font-black border text-accent bg-gradient-to-br from-orange-400/30 to-orange-500/15 border-orange-400/25">
                 {user.photoURL ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={user.photoURL} alt="avatar" className="w-full h-full rounded-2xl object-cover" />
                 ) : initials}
               </div>
               {editMode && (
-                <button className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                  style={{ background: '#FBBF24', color: '#000' }}>
-                  📷
+                <button className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center bg-orange-500 text-white">
+                  <Camera size={12} />
                 </button>
               )}
             </div>
@@ -172,12 +172,12 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <>
-                  <h2 className="font-black text-white text-lg">{user.displayName}</h2>
-                  <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{user.phone || 'No phone added'}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{user.email || 'No email added'}</p>
+                  <h2 className="font-black text-body text-lg">{user.displayName}</h2>
+                  <p className="text-sm mt-0.5 text-secondary">{user.phone || 'No phone added'}</p>
+                  <p className="text-xs mt-0.5 text-faint">{user.email || 'No email added'}</p>
                   <div className="flex items-center gap-1.5 mt-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span className="text-xs font-bold text-emerald-400">Verified Account</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Verified Account</span>
                   </div>
                 </>
               )}
@@ -186,7 +186,7 @@ export default function ProfilePage() {
 
           {editMode && (
             <button onClick={saveProfile} disabled={saving} className="btn-primary w-full mt-4 py-3 disabled:opacity-60">
-              {saving ? 'Saving...' : 'Save Changes ✓'}
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           )}
         </div>
@@ -194,50 +194,47 @@ export default function ProfilePage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Orders', value: String(orders.length), icon: '📦', href: '/orders' },
-            { label: 'Wallet', value: `₹${walletBalance}`, icon: '👛', href: '/wallet' },
-            { label: 'Saved', value: String(favoriteShopIds.length), icon: '❤️', href: '/favorites' },
+            { label: 'Orders', value: String(orders.length), icon: Package, href: '/orders' },
+            { label: 'Wallet', value: `₹${walletBalance}`, icon: Wallet, href: '/wallet' },
+            { label: 'Saved', value: String(favoriteShopIds.length), icon: Heart, href: '/favorites' },
           ].map(s => (
             <Link key={s.label} href={s.href}
-              className="rounded-2xl border p-3 text-center transition-all hover:border-white/15"
-              style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.07)' }}>
-              <div className="text-xl">{s.icon}</div>
-              <div className="text-sm font-black text-white mt-0.5">{s.value}</div>
-              <div className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{s.label}</div>
+              className="glass-card p-3 text-center transition-all hover:border-orange-400/25">
+              <s.icon size={17} className="text-accent mx-auto" />
+              <div className="text-sm font-black text-body mt-0.5">{s.value}</div>
+              <div className="text-[10px] mt-0.5 text-faint">{s.label}</div>
             </Link>
           ))}
         </div>
 
         {/* Section Tabs */}
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex gap-1 p-1 rounded-xl surface">
           {(['menu', 'addresses'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveSection(tab)}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold capitalize transition-all ${activeSection === tab ? 'bg-yellow-400 text-black' : 'text-white/50'}`}>
-              {tab === 'menu' ? '⚙️ Account' : '📍 Addresses'}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold capitalize transition-all flex items-center justify-center gap-1.5 ${activeSection === tab ? 'bg-orange-500 text-white' : 'text-muted'}`}>
+              {tab === 'menu' ? <><Settings size={12} /> Account</> : <><MapPin size={12} /> Addresses</>}
             </button>
           ))}
         </div>
 
         {/* Menu Items */}
         {activeSection === 'menu' && (
-          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+          <div className="glass-card overflow-hidden p-0">
             {menuWithBadges.map((item, i) => (
               <React.Fragment key={item.label}>
-                <Link href={item.href} className="flex items-center gap-3 p-4 transition-colors hover:bg-white/[0.03]">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.05)' }}>
-                    {item.icon}
+                <Link href={item.href} className="flex items-center gap-3 p-4 transition-colors hover:bg-[var(--card-hover)]">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 surface">
+                    <item.icon size={16} className="text-secondary" />
                   </div>
-                  <span className="flex-1 text-sm font-semibold text-white">{item.label}</span>
+                  <span className="flex-1 text-sm font-semibold text-body">{item.label}</span>
                   {item.badge && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: 'rgba(251,191,36,0.12)', color: '#FBBF24', border: '1px solid rgba(251,191,36,0.2)' }}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-500/12 text-accent border border-orange-500/20">
                       {item.badge}
                     </span>
                   )}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+                  <ChevronRight size={14} className="text-faint" />
                 </Link>
-                {i < menuWithBadges.length - 1 && <div className="h-px mx-4" style={{ background: 'rgba(255,255,255,0.04)' }} />}
+                {i < menuWithBadges.length - 1 && <div className="divider mx-4" />}
               </React.Fragment>
             ))}
           </div>
@@ -247,30 +244,27 @@ export default function ProfilePage() {
         {activeSection === 'addresses' && (
           <div className="space-y-3">
             {addresses.length === 0 && !showAddAddress && (
-              <div className="text-center py-8 text-white/30 text-sm">No addresses saved yet</div>
+              <div className="text-center py-8 text-faint text-sm">No addresses saved yet</div>
             )}
             {addresses.map(addr => (
-              <div key={addr.id} className="rounded-2xl border p-4"
-                style={{ background: 'rgba(255,255,255,0.025)', borderColor: addr.id === selectedAddressId ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.07)' }}>
+              <div key={addr.id} className={`glass-card p-4 ${addr.id === selectedAddressId ? 'border-orange-400/30' : ''}`}>
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: addr.id === selectedAddressId ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.05)' }}>
-                    {addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '🏢' : '📍'}
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${addr.id === selectedAddressId ? 'bg-orange-500/12' : 'surface'}`}>
+                    {addr.label === 'Home' ? <Home size={17} className="text-secondary" /> : addr.label === 'Work' ? <Building2 size={17} className="text-secondary" /> : <MapPin size={17} className="text-secondary" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-sm font-bold text-white">{addr.label}</span>
+                      <span className="text-sm font-bold text-body">{addr.label}</span>
                       {addr.id === selectedAddressId && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(251,191,36,0.12)', color: '#FBBF24' }}>Default</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-orange-500/12 text-accent">Default</span>
                       )}
                     </div>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{addr.fullAddress}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{addr.city} - {addr.pincode}</p>
+                    <p className="text-xs text-secondary">{addr.fullAddress}</p>
+                    <p className="text-xs mt-0.5 text-faint">{addr.city} - {addr.pincode}</p>
                   </div>
                   <button onClick={() => setSelectedAddress(addr.id)}
-                    className="text-xs font-bold flex-shrink-0"
-                    style={{ color: addr.id === selectedAddressId ? '#10B981' : '#FBBF24' }}>
-                    {addr.id === selectedAddressId ? '✓ Selected' : 'Select'}
+                    className={`text-xs font-bold flex-shrink-0 flex items-center gap-1 ${addr.id === selectedAddressId ? 'text-emerald-600 dark:text-emerald-400' : 'text-accent'}`}>
+                    {addr.id === selectedAddressId ? <><Check size={12} /> Selected</> : 'Select'}
                   </button>
                 </div>
               </div>
@@ -278,17 +272,12 @@ export default function ProfilePage() {
 
             {/* Add Address Form */}
             {showAddAddress && (
-              <div className="rounded-2xl border p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(251,191,36,0.15)' }}>
-                <h3 className="text-sm font-bold text-white">Add New Address</h3>
+              <div className="glass-card p-4 space-y-3 border-orange-400/20">
+                <h3 className="text-sm font-bold text-body">Add New Address</h3>
                 <div className="flex gap-2">
                   {['Home', 'Work', 'Other'].map(l => (
                     <button key={l} onClick={() => setNewAddress(a => ({ ...a, label: l }))}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
-                      style={{
-                        background: newAddress.label === l ? '#FBBF24' : 'rgba(255,255,255,0.04)',
-                        color: newAddress.label === l ? '#000' : 'rgba(255,255,255,0.5)',
-                        borderColor: newAddress.label === l ? '#FBBF24' : 'rgba(255,255,255,0.08)',
-                      }}>
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${newAddress.label === l ? 'bg-orange-500 text-white border-orange-500' : 'surface text-secondary'}`}>
                       {l}
                     </button>
                   ))}
@@ -315,10 +304,9 @@ export default function ProfilePage() {
 
             {!showAddAddress && (
               <button onClick={() => setShowAddAddress(true)}
-                className="w-full rounded-2xl border p-4 flex items-center justify-center gap-2 transition-all hover:border-white/15"
-                style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.07)', borderStyle: 'dashed' }}>
-                <span className="text-yellow-400 text-lg">+</span>
-                <span className="text-sm font-bold text-yellow-400">Add New Address</span>
+                className="w-full rounded-2xl border border-dashed p-4 flex items-center justify-center gap-2 transition-all hover:border-orange-400/30 border-subtle">
+                <Plus size={16} className="text-accent" />
+                <span className="text-sm font-bold text-accent">Add New Address</span>
               </button>
             )}
           </div>
@@ -326,9 +314,9 @@ export default function ProfilePage() {
 
         {/* Logout */}
         <button onClick={handleLogout}
-          className="w-full rounded-2xl border p-4 flex items-center justify-center gap-2 transition-all hover:border-red-500/20"
-          style={{ background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.15)' }}>
-          <span className="text-sm font-bold text-red-400">🚪 Logout</span>
+          className="w-full rounded-2xl border p-4 flex items-center justify-center gap-2 transition-all hover:border-red-500/25 bg-red-500/5 border-red-500/15">
+          <LogOut size={15} className="text-red-500 dark:text-red-400" />
+          <span className="text-sm font-bold text-red-500 dark:text-red-400">Logout</span>
         </button>
 
       </div>

@@ -21,34 +21,34 @@ export default function Input({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-secondary mb-2">
           {label}
         </label>
       )}
       <div className="relative">
         {icon && (
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-faint">
             {icon}
           </div>
         )}
         <input
           className={clsx(
-            'input-field',
+            'input-glass',
             icon && 'pl-12',
             rightIcon && 'pr-12',
-            error && 'border-accent-red focus:border-accent-red focus:ring-accent-red/50',
+            error && 'border-red-500 focus:border-red-500',
             className
           )}
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-faint">
             {rightIcon}
           </div>
         )}
       </div>
       {error && (
-        <p className="mt-1 text-sm text-accent-red">{error}</p>
+        <p className="mt-1 text-sm text-red-500 dark:text-red-400">{error}</p>
       )}
     </div>
   );

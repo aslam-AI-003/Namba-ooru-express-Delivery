@@ -2,6 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import {
+  ArrowLeft, Phone, MessageCircle, Mail, ChevronDown, FileText, Lock,
+  Wallet, Building2, ChevronRight, Send,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const FAQS = [
@@ -32,8 +36,8 @@ export default function SupportPage() {
     <main className="min-h-screen app-bg pb-24 md:pb-8">
       <header className="sticky top-0 z-50 header-glass">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/profile" className="btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></Link>
-          <h1 className="font-bold text-white flex-1">Help & Support</h1>
+          <Link href="/profile" className="btn-icon"><ArrowLeft size={18} /></Link>
+          <h1 className="font-bold text-body flex-1">Help & Support</h1>
         </div>
       </header>
 
@@ -41,38 +45,35 @@ export default function SupportPage() {
         {/* Quick Contact */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { icon: '📞', label: 'Call Us', sub: '1800-XXX-XXXX', href: 'tel:1800XXXXXXX', color: 'from-emerald-500/15' },
-            { icon: '💬', label: 'WhatsApp', sub: 'Chat now', href: 'https://wa.me/919876543210', color: 'from-green-500/15' },
-            { icon: '📧', label: 'Email', sub: 'support@noe.in', href: 'mailto:support@noe.in', color: 'from-blue-500/15' },
+            { icon: Phone, label: 'Call Us', sub: '1800-XXX-XXXX', href: 'tel:1800XXXXXXX', color: '#10B981' },
+            { icon: MessageCircle, label: 'WhatsApp', sub: 'Chat now', href: 'https://wa.me/919876543210', color: '#22C55E' },
+            { icon: Mail, label: 'Email', sub: 'support@noe.in', href: 'mailto:support@noe.in', color: '#3B82F6' },
           ].map(c => (
             <a key={c.label} href={c.href} target="_blank" rel="noreferrer"
-              className={`glass-card p-3 text-center bg-gradient-to-br ${c.color} to-transparent hover:scale-105 transition-transform`}>
-              <div className="text-2xl mb-1">{c.icon}</div>
-              <p className="text-xs font-bold text-white">{c.label}</p>
-              <p className="text-[10px] text-white/35 mt-0.5">{c.sub}</p>
+              className="glass-card p-3 text-center hover:scale-105 transition-transform">
+              <c.icon size={22} style={{ color: c.color }} className="mx-auto mb-1" />
+              <p className="text-xs font-bold text-body">{c.label}</p>
+              <p className="text-[10px] text-faint mt-0.5">{c.sub}</p>
             </a>
           ))}
         </div>
 
         {/* FAQs */}
-        <div className="glass-card overflow-hidden">
-          <div className="p-4 border-b border-white/[0.06]">
-            <h2 className="text-sm font-bold text-white">❓ Frequently Asked Questions</h2>
+        <div className="glass-card overflow-hidden p-0">
+          <div className="p-4 border-b border-subtle">
+            <h2 className="text-sm font-bold text-body">Frequently Asked Questions</h2>
           </div>
           {FAQS.map((faq, i) => (
             <React.Fragment key={i}>
               <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="w-full text-left p-4 flex items-start gap-3 hover:bg-white/[0.02] transition-colors">
+                className="w-full text-left p-4 flex items-start gap-3 hover:bg-[var(--card-hover)] transition-colors">
                 <div className="flex-1">
-                  <p className={`text-sm font-semibold transition-colors ${openFaq === i ? 'text-yellow-400' : 'text-white'}`}>{faq.q}</p>
+                  <p className={`text-sm font-semibold transition-colors ${openFaq === i ? 'text-accent' : 'text-body'}`}>{faq.q}</p>
                   {openFaq === i && (
-                    <p className="text-xs text-white/50 mt-2 leading-relaxed animate-slide-up">{faq.a}</p>
+                    <p className="text-xs text-muted mt-2 leading-relaxed animate-slide-up">{faq.a}</p>
                   )}
                 </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"
-                  className={`flex-shrink-0 mt-0.5 transition-transform ${openFaq === i ? 'rotate-180' : ''}`}>
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
+                <ChevronDown size={14} className={`flex-shrink-0 mt-0.5 text-faint transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
               </button>
               {i < FAQS.length - 1 && <div className="divider mx-4" />}
             </React.Fragment>
@@ -81,10 +82,10 @@ export default function SupportPage() {
 
         {/* Contact Form */}
         <div className="glass-card p-4">
-          <h2 className="text-sm font-bold text-white mb-4">📝 Send us a message</h2>
+          <h2 className="text-sm font-bold text-body mb-4">Send us a message</h2>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">Subject</label>
+              <label className="block text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Subject</label>
               <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="input-glass text-sm">
                 <option value="">Select a topic</option>
                 <option value="order">Order Issue</option>
@@ -96,12 +97,12 @@ export default function SupportPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">Message</label>
+              <label className="block text-xs font-semibold text-muted mb-1.5 uppercase tracking-wider">Message</label>
               <textarea value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
                 placeholder="Describe your issue in detail..." className="input-glass text-sm resize-none" rows={4} />
             </div>
-            <button type="submit" disabled={sending} className="btn-primary w-full py-3 disabled:opacity-60">
-              {sending ? 'Sending...' : 'Send Message 📤'}
+            <button type="submit" disabled={sending} className="btn-primary w-full py-3 disabled:opacity-60 flex items-center justify-center gap-2">
+              {sending ? 'Sending...' : <>Send Message <Send size={14} /></>}
             </button>
           </form>
         </div>
@@ -109,23 +110,23 @@ export default function SupportPage() {
         {/* Links */}
         <div className="glass-sm overflow-hidden">
           {[
-            { icon: '📋', label: 'Terms of Service', href: '/terms' },
-            { icon: '🔒', label: 'Privacy Policy', href: '/privacy' },
-            { icon: '💰', label: 'Refund Policy', href: '/refund' },
-            { icon: '🏢', label: 'About NammaOoru', href: '/about' },
+            { icon: FileText, label: 'Terms of Service', href: '/terms' },
+            { icon: Lock, label: 'Privacy Policy', href: '/privacy' },
+            { icon: Wallet, label: 'Refund Policy', href: '/refund' },
+            { icon: Building2, label: 'About NammaOoru', href: '/about' },
           ].map((item, i) => (
             <React.Fragment key={item.href}>
-              <Link href={item.href} className="flex items-center gap-3 p-4 hover:bg-white/[0.03] transition-colors">
-                <span className="text-base">{item.icon}</span>
-                <span className="text-sm text-white/70 flex-1">{item.label}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+              <Link href={item.href} className="flex items-center gap-3 p-4 hover:bg-[var(--card-hover)] transition-colors">
+                <item.icon size={16} className="text-secondary" />
+                <span className="text-sm text-secondary flex-1">{item.label}</span>
+                <ChevronRight size={14} className="text-faint" />
               </Link>
               {i < 3 && <div className="divider mx-4" />}
             </React.Fragment>
           ))}
         </div>
 
-        <p className="text-center text-xs text-white/20 pb-2">
+        <p className="text-center text-xs text-faint pb-2">
           NammaOoru Express • Thanjavur, Tamil Nadu<br />
           Available 8 AM – 10 PM daily
         </p>
