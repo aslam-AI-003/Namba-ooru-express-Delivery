@@ -34,6 +34,7 @@ export default function RegisterPage() {
     if (!form.email || !form.password) return toast.error('Fill all fields');
     if (form.password.length < 6) return toast.error('Password must be at least 6 characters');
     if (form.password !== form.confirmPassword) return toast.error('Passwords do not match');
+    if (!auth || !db) return toast.error('Firebase not initialized');
     setLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);

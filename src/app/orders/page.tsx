@@ -13,6 +13,12 @@ import { rateOrder, cancelOrder, addNotification } from '@/lib/firebaseService';
 import type { Order } from '@/lib/firebaseService';
 import toast from 'react-hot-toast';
 
+// Helper: ensure image src is a valid URL/path (not emoji or garbage)
+function safeImageSrc(src?: string): string {
+  if (src && (src.startsWith('/') || src.startsWith('http'))) return src;
+  return '/images/categories/groceries.jpg';
+}
+
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: React.ElementType }> = {
   placed:     { label: 'Order Placed',   color: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    icon: ClipboardList },
   confirmed:  { label: 'Confirmed',      color: 'text-purple-600 dark:text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  icon: CheckCircle2 },
@@ -65,7 +71,7 @@ function RatingModal({ order, onClose, onSubmit }: { order: Order; onClose: () =
         <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-[var(--card-border)]" />
         <div className="text-center mb-5">
           <div className="w-16 h-16 rounded-xl overflow-hidden relative mx-auto mb-2">
-            <Image src={order.shopIcon || '/images/categories/groceries.jpg'} alt={order.shopName} fill sizes="64px" className="object-cover" />
+            <Image src={safeImageSrc(order.shopIcon)} alt={order.shopName} fill sizes="64px" className="object-cover" />
           </div>
           <h2 className="font-black text-body text-lg">Rate Your Order</h2>
           <p className="text-xs mt-0.5 text-faint">{order.shopName} • {order.id?.slice(-8).toUpperCase()}</p>
@@ -254,7 +260,7 @@ export default function OrdersPage() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-10 h-10 rounded-xl overflow-hidden relative flex-shrink-0">
-                        <Image src={order.shopIcon || '/images/categories/groceries.jpg'} alt={order.shopName} fill sizes="40px" className="object-cover" />
+                        <Image src={safeImageSrc(order.shopIcon)} alt={order.shopName} fill sizes="40px" className="object-cover" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">

@@ -50,6 +50,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     // Listen to Firebase Auth state changes — this is the single source of truth
+    if (!auth) return;
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // ── User is logged in ──────────────────────────────────

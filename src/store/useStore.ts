@@ -29,6 +29,71 @@ export interface UserAddress {
   isDefault?: boolean;
 }
 
+// Rider Registration
+export interface RiderRegistration {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  city: string;
+  vehicleType: 'Bike' | 'Cycle' | 'Auto' | 'Walking';
+  aadhaarNumber: string;
+  licenseNumber?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  riderId?: string; // Generated on approval (NOE-R-XXXXX)
+  password?: string; // Generated on approval
+  approvedAt?: string;
+  rejectedAt?: string;
+  createdAt: string;
+  // Live fields
+  isOnline?: boolean;
+  currentLat?: number;
+  currentLng?: number;
+  totalDeliveries?: number;
+  totalEarnings?: number;
+}
+
+// Vendor Product (added by vendor from their dashboard)
+export interface VendorProduct {
+  id: string;
+  shopId: string;
+  name: string;
+  nameTamil: string;
+  price: number;
+  discountPrice?: number;
+  unit: string;
+  category: string;
+  isVeg: boolean;
+  isAvailable: boolean;
+  image?: string;
+  description?: string;
+}
+
+// Vendor Registration
+export interface VendorRegistration {
+  id: string;
+  shopName: string;
+  ownerName: string;
+  phone: string;
+  email: string;
+  category: string;
+  address: string;
+  city: string;
+  pincode: string;
+  gstNumber?: string;
+  fssaiNumber?: string;
+  bankAccount?: string;
+  ifscCode?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  shopId?: string; // Generated on approval (NOE-SHOP-XXXXX)
+  password?: string; // Generated on approval (auto)
+  approvedAt?: string;
+  rejectedAt?: string;
+  createdAt: string;
+}
+
 // Demo Order (local state for full flow testing)
 export interface DemoOrder {
   id: string;
@@ -123,6 +188,32 @@ interface StoreState {
   setNotifications: (notifications: Notification[]) => void;
   unreadNotificationCount: number;
   setUnreadNotificationCount: (count: number) => void;
+
+  // ── VENDOR REGISTRATIONS ──
+  vendorRegistrations: VendorRegistration[];
+  addVendorRegistration: (reg: VendorRegistration) => void;
+  approveVendor: (regId: string) => void;
+  rejectVendor: (regId: string, reason: string) => void;
+  getApprovedVendors: () => VendorRegistration[];
+  getPendingVendors: () => VendorRegistration[];
+  getVendorByCredentials: (phone: string, password: string) => VendorRegistration | null;
+
+  // ── VENDOR PRODUCTS ──
+  vendorProducts: VendorProduct[];
+  addVendorProduct: (product: VendorProduct) => void;
+  updateVendorProduct: (productId: string, updates: Partial<VendorProduct>) => void;
+  deleteVendorProduct: (productId: string) => void;
+  getProductsByShop: (shopId: string) => VendorProduct[];
+
+  // ── RIDER REGISTRATIONS ──
+  riderRegistrations: RiderRegistration[];
+  addRiderRegistration: (reg: RiderRegistration) => void;
+  approveRider: (regId: string) => void;
+  rejectRider: (regId: string, reason: string) => void;
+  getApprovedRiders: () => RiderRegistration[];
+  getPendingRiders: () => RiderRegistration[];
+  getOnlineRiders: () => RiderRegistration[];
+  setRiderOnline: (riderId: string, online: boolean) => void;
 
   // Auth actions
   setUser: (user: StoreState['user']) => void;
@@ -243,6 +334,70 @@ export const useStore = create<StoreState>()(
       unreadNotificationCount: 0,
       setUnreadNotificationCount: (count) => set({ unreadNotificationCount: count }),
 
+      // ── VENDOR REGISTRATIONS ──
+      vendorRegistrations: [],
+      addVendorRegistration: (reg) => set({ vendorRegistrations: [...get().vendorRegistrations, reg] }),
+      approveVendor: (regId) => {
+        const updated = get().vendorRegistrations.map(r => {
+          if (r.id !== regId) return r;
+          const shopId = 'NOE-' + Date.now().toString(36).toUpperCase().slice(-5);
+          const password = shopId; // password = shopId for simplicity
+          return { ...r, status: 'approved' as const, shopId, password, approvedAt: new Date().toISOString() };
+        });
+        set({ vendorRegistrations: updated });
+      },
+      rejectVendor: (regId, reason) => {
+        const updated = get().vendorRegistrations.map(r =>
+          r.id === regId ? { ...r, status: 'rejected' as const, rejectionReason: reason, rejectedAt: new Date().toISOString() } : r
+        );
+        set({ vendorRegistrations: updated });
+      },
+      getApprovedVendors: () => get().vendorRegistrations.filter(r => r.status === 'approved'),
+      getPendingVendors: () => get().vendorRegistrations.filter(r => r.status === 'pending'),
+      getVendorByCredentials: (phone, password) => {
+        return get().vendorRegistrations.find(r => r.status === 'approved' && r.phone === phone && r.password === password) || null;
+      },
+
+      // ── VENDOR PRODUCTS ──
+      vendorProducts: [],
+      addVendorProduct: (product) => set({ vendorProducts: [...get().vendorProducts, product] }),
+      updateVendorProduct: (productId, updates) => {
+        const updated = get().vendorProducts.map(p => p.id === productId ? { ...p, ...updates } : p);
+        set({ vendorProducts: updated });
+      },
+      deleteVendorProduct: (productId) => {
+        set({ vendorProducts: get().vendorProducts.filter(p => p.id !== productId) });
+      },
+      getProductsByShop: (shopId) => get().vendorProducts.filter(p => p.shopId === shopId),
+
+      // ── RIDER REGISTRATIONS ──
+      riderRegistrations: [],
+      addRiderRegistration: (reg) => set({ riderRegistrations: [...get().riderRegistrations, reg] }),
+      approveRider: (regId) => {
+        const updated = get().riderRegistrations.map(r => {
+          if (r.id !== regId) return r;
+          const riderId = 'NOE-R-' + Date.now().toString(36).toUpperCase().slice(-4);
+          const password = riderId;
+          return { ...r, status: 'approved' as const, riderId, password, approvedAt: new Date().toISOString(), isOnline: false, totalDeliveries: 0, totalEarnings: 0 };
+        });
+        set({ riderRegistrations: updated });
+      },
+      rejectRider: (regId, reason) => {
+        const updated = get().riderRegistrations.map(r =>
+          r.id === regId ? { ...r, status: 'rejected' as const, rejectionReason: reason, rejectedAt: new Date().toISOString() } : r
+        );
+        set({ riderRegistrations: updated });
+      },
+      getApprovedRiders: () => get().riderRegistrations.filter(r => r.status === 'approved'),
+      getPendingRiders: () => get().riderRegistrations.filter(r => r.status === 'pending'),
+      getOnlineRiders: () => get().riderRegistrations.filter(r => r.status === 'approved' && r.isOnline),
+      setRiderOnline: (riderId, online) => {
+        const updated = get().riderRegistrations.map(r =>
+          r.riderId === riderId ? { ...r, isOnline: online } : r
+        );
+        set({ riderRegistrations: updated });
+      },
+
       // Auth actions
       setUser: (user) => set({ isAuthenticated: !!user, user }),
       logout: () => set({
@@ -274,6 +429,9 @@ export const useStore = create<StoreState>()(
         currentLocation: state.currentLocation,
         demoOrders: state.demoOrders,
         walletBalance: state.walletBalance,
+        vendorRegistrations: state.vendorRegistrations,
+        vendorProducts: state.vendorProducts,
+        riderRegistrations: state.riderRegistrations,
       }),
     }
   )

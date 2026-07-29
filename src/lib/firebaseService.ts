@@ -9,7 +9,16 @@ import {
   onSnapshot, serverTimestamp, increment, writeBatch,
   Timestamp, DocumentData,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db as _db } from './firebase';
+import { Firestore } from 'firebase/firestore';
+
+// ── DEMO MODE GUARD ──
+// When Firebase is not configured, all service functions
+// return gracefully without crashing. The app works in
+// demo mode using Zustand's local demoOrders store.
+
+// Use a type assertion to satisfy TS; at runtime we guard with try/catch
+const db = _db as Firestore;
 
 // ─── TYPES ───────────────────────────────────────────────────
 

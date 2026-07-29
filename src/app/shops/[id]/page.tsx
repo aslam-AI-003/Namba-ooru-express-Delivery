@@ -14,12 +14,57 @@ import toast from 'react-hot-toast';
 
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { cart, addToCart, updateQuantity, removeFromCart, favoriteShopIds, toggleFavorite } = useStore();
+  const { cart, addToCart, updateQuantity, removeFromCart, favoriteShopIds, toggleFavorite, vendorRegistrations, vendorProducts } = useStore();
   const [activeTab, setActiveTab] = useState('menu');
   const [vegOnly, setVegOnly] = useState(false);
 
-  const shop = SEED_SHOPS.find(s => s.id === id);
-  const products = SEED_PRODUCTS.filter(p => p.shopId === id && (!vegOnly || p.isVeg));
+  // Try seed shops first, then look in approved vendor registrations
+  const seedShop = SEED_SHOPS.find(s => s.id === id);
+  const vendorReg = !seedShop ? vendorRegistrations.find(v => v.status === 'approved' && (v.shopId === id || v.id === id)) : null;
+
+  // Build a unified shop object
+  const shop = seedShop || (vendorReg ? {
+    id: vendorReg.shopId || vendorReg.id,
+    name: vendorReg.shopName,
+    description: `${vendorReg.category} shop by ${vendorReg.ownerName}`,
+    categoryId: vendorReg.category,
+    images: { banner: '/images/shops/shop-1.jpg', logo: '/images/shops/shop-1.jpg' },
+    rating: 4.5,
+    totalRatings: 0,
+    totalOrders: 0,
+    avgPrepTime: 20,
+    deliveryCharge: 25,
+    freeDeliveryAbove: 299,
+    minOrderAmount: 0,
+    deliveryRadius: 5,
+    isOpen: true,
+    isFeatured: false,
+    address: { full: vendorReg.address, city: vendorReg.city, pincode: vendorReg.pincode, lat: 11.02, lng: 76.97 },
+    openTime: '08:00',
+    closeTime: '22:00',
+    tags: ['New'],
+  } : null);
+
+  // Get products: seed products OR vendor products
+  const seedProducts = SEED_PRODUCTS.filter(p => p.shopId === id && (!vegOnly || p.isVeg));
+  const vendorProds = vendorProducts
+    .filter(p => p.shopId === id && p.isAvailable && (!vegOnly || p.isVeg))
+    .map(p => ({
+      id: p.id,
+      shopId: p.shopId,
+      name: p.name,
+      nameTamil: p.nameTamil,
+      price: p.price,
+      discountPrice: p.discountPrice,
+      unit: p.unit,
+      category: p.category,
+      isVeg: p.isVeg,
+      isAvailable: p.isAvailable,
+      image: p.image || '/images/products/meals-thali.jpg',
+      description: p.description || '',
+    }));
+  const products = [...seedProducts, ...vendorProds];
+
   const cartItems = cart.filter(i => i.shopId === id);
   const cartTotal = cartItems.reduce((sum, i) => sum + (i.discountPrice || i.price) * i.quantity, 0);
   const isFav = favoriteShopIds.includes(id);
@@ -75,7 +120,7 @@ export default function ShopDetailPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-xl font-black text-body">{shop.name}</h2>
-                <p className="text-sm text-muted mt-0.5">{shop.nameTamil}</p>
+                {'nameTamil' in shop && shop.nameTamil && <p className="text-sm text-muted mt-0.5">{shop.nameTamil}</p>}
                 <p className="text-xs text-faint mt-1">{shop.description}</p>
               </div>
             </div>
@@ -167,7 +212,7 @@ export default function ShopDetailPage() {
                         <p className="text-[11px] text-faint mt-0.5">{product.nameTamil} • {product.unit}</p>
                         <div className="flex items-center gap-1 mt-1">
                           <Star size={10} fill="#F97316" stroke="none" />
-                          <span className="text-[10px] text-accent font-bold">{product.rating}</span>
+                          <span className="text-[10px] text-accent font-bold">{'rating' in product ? (product as any).rating : 4.5}</span>
                         </div>
                       </div>
 
@@ -204,8 +249,8 @@ export default function ShopDetailPage() {
           <div className="space-y-3">
             {[
               { icon: MapPin, label: 'Address', value: shop.address.full },
-              { icon: Phone, label: 'Phone', value: shop.phone },
-              { icon: Clock, label: 'Timing', value: `${shop.timing.openTime} – ${shop.timing.closeTime}` },
+              { icon: Phone, label: 'Phone', value: ('phone' in shop ? (shop as any).phone : 'N/A') },
+              { icon: Clock, label: 'Timing', value: ('timing' in shop ? `${(shop as any).timing.openTime} – ${(shop as any).timing.closeTime}` : `${(shop as any).openTime || '08:00'} – ${(shop as any).closeTime || '22:00'}`) },
               { icon: Bike, label: 'Delivery Radius', value: `${shop.deliveryRadius} km` },
               { icon: Wallet, label: 'Min. Order', value: shop.minOrderAmount > 0 ? `₹${shop.minOrderAmount}` : 'No minimum' },
               { icon: Zap, label: 'Avg Prep Time', value: `${shop.avgPrepTime} minutes` },

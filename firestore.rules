@@ -1,163 +1,44 @@
 rules_version = '2';
 
-// ============================================================
-// Namma Ooru Express — Firestore Security Rules
-// Includes: Voice Call Ordering collections
-// ============================================================
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ─── HELPER FUNCTIONS ────────────────────────────────────────
-    function isAuth() {
-      return request.auth != null;
-    }
-    function isOwner(uid) {
-      return isAuth() && request.auth.uid == uid;
-    }
-    function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    function isVendor() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor';
-    }
-
-    // ─── USERS ───────────────────────────────────────────────────
-    match /users/{uid} {
-      // User can read/write their own profile; admin can read all
-      allow read: if isOwner(uid) || isAdmin();
-      allow create: if isOwner(uid);
-      allow update: if isOwner(uid) || isAdmin();
-      allow delete: if isAdmin();
-
-      // Addresses sub-collection
-      match /addresses/{addressId} {
-        allow read, write: if isOwner(uid);
-      }
-
-      // Wallet transactions sub-collection
-      match /transactions/{txId} {
-        allow read: if isOwner(uid) || isAdmin();
-        allow create: if isOwner(uid) || isAdmin();
-        allow update, delete: if isAdmin();
-      }
-
-      // Notifications sub-collection
-      match /notifications/{notifId} {
-        allow read: if isOwner(uid);
-        allow create: if isOwner(uid) || isAdmin();
-        // Allow user to mark as read (update only the 'read' field)
-        allow update: if isOwner(uid);
-        allow delete: if isOwner(uid) || isAdmin();
-      }
-    }
-
-    // ─── ORDERS ──────────────────────────────────────────────────
-    match /orders/{orderId} {
-      // Customer can read their own orders
-      allow read: if isAuth() && (
-        resource.data.userId == request.auth.uid ||
-        isAdmin() ||
-        isVendor()
-      );
-      // Customer can create orders
-      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
-      // Customer can update (cancel, rate); admin/vendor can update status
-      allow update: if isAuth() && (
-        resource.data.userId == request.auth.uid ||
-        isAdmin() ||
-        isVendor()
-      );
-      allow delete: if isAdmin();
-    }
-
-    // ─── SHOPS ───────────────────────────────────────────────────
-    match /shops/{shopId} {
-      // Anyone can read shops (public catalog)
-      allow read: if true;
-      // Only admin or the shop owner (vendor) can write
-      allow create, update: if isAdmin() || isVendor();
-      allow delete: if isAdmin();
-    }
-
-    // ─── PRODUCTS ────────────────────────────────────────────────
-    match /products/{productId} {
-      // Anyone can read products
-      allow read: if true;
-      // Only admin or vendor can write
-      allow create, update: if isAdmin() || isVendor();
-      allow delete: if isAdmin();
-    }
-
-    // ─── RIDERS ──────────────────────────────────────────────────
-    match /riders/{riderId} {
-      allow read: if isAuth();
-      allow create: if isOwner(riderId);
-      allow update: if isOwner(riderId) || isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // ─── SUPPORT TICKETS ─────────────────────────────────────────
-    match /support/{ticketId} {
-      allow read: if isAuth() && (
-        resource.data.userId == request.auth.uid || isAdmin()
-      );
-      allow create: if isAuth();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // ─── OFFERS / COUPONS ────────────────────────────────────────
-    match /offers/{offerId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ─── CATEGORIES ──────────────────────────────────────────────
-    match /categories/{catId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // ─── FRANCHISE APPLICATIONS ──────────────────────────────────
-    match /franchise_applications/{appId} {
+    
+    // ━━━ VENDORS ━━━
+    // Anyone can create (registration), authenticated can read
+    match /vendors/{vendorId} {
       allow create: if true;
-      allow read, update, delete: if isAdmin();
-    }
-
-    // ─── CAREER APPLICATIONS ─────────────────────────────────────
-    match /career_applications/{appId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
-    }
-
-    // ─── VOICE CALLS (AI Call Center) ────────────────────────────
-    match /voice_calls/{callId} {
-      // Only admin and system (backend) can read/write
-      allow read: if isAdmin();
-      allow create, update: if isAdmin();
-      allow delete: if false; // Never delete call records
-
-      // Transcript subcollection
-      match /transcript/{turnId} {
-        allow read: if isAdmin();
-        allow create, update: if isAdmin();
-        allow delete: if false;
-      }
-    }
-
-    // ─── HUMAN ESCALATIONS ───────────────────────────────────────
-    match /human_escalations/{escId} {
-      allow read: if isAdmin();
-      allow create, update: if isAdmin();
+      allow read: if true;
+      allow update: if true; // Admin approves/rejects
       allow delete: if false;
     }
 
-    // ─── CUSTOMER VOICE PROFILES ─────────────────────────────────
-    match /customer_voice_profiles/{phone} {
-      allow read: if isAdmin();
-      allow create, update: if isAdmin();
-      allow delete: if isAdmin();
+    // ━━━ RIDERS ━━━
+    match /riders/{riderId} {
+      allow create: if true;
+      allow read: if true;
+      allow update: if true;
+      allow delete: if false;
     }
 
+    // ━━━ PRODUCTS ━━━
+    match /products/{productId} {
+      allow read: if true; // Everyone can see products
+      allow create, update, delete: if true; // Vendors manage their products
+    }
+
+    // ━━━ ORDERS ━━━
+    match /orders/{orderId} {
+      allow create: if true; // Customers create orders
+      allow read: if true; // Customer, vendor, rider can read
+      allow update: if true; // Status changes
+      allow delete: if false;
+    }
+
+    // ━━━ USERS ━━━
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
   }
 }

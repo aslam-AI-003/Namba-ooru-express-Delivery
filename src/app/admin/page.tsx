@@ -60,6 +60,8 @@ export default function AdminDashboard() {
   ];
 
   const quickLinks = [
+    { label: 'Vendor Management', href: '/admin/vendors', icon: Store },
+    { label: 'Rider Management', href: '/admin/riders', icon: Bike },
     { label: 'Customer App', href: '/', icon: Store },
     { label: 'Shop Dashboard', href: '/dashboard/shop', icon: Store },
     { label: 'Rider Dashboard', href: '/dashboard/rider', icon: Bike },

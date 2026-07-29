@@ -11,13 +11,41 @@ import { SEED_SHOPS, SEED_CATEGORIES } from '@/lib/seed-data';
 function ShopsContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
-  const { favoriteShopIds, toggleFavorite } = useStore();
+  const { favoriteShopIds, toggleFavorite, vendorRegistrations } = useStore();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState<'rating' | 'time' | 'orders'>('rating');
   const [onlyOpen, setOnlyOpen] = useState(false);
 
-  const filtered = SEED_SHOPS
+  // Convert approved vendor registrations to shop format
+  const approvedVendorShops = vendorRegistrations
+    .filter(v => v.status === 'approved')
+    .map(v => ({
+      id: v.shopId || v.id,
+      name: v.shopName,
+      description: `${v.category} shop by ${v.ownerName}`,
+      categoryId: v.category,
+      images: { banner: '/images/shops/shop-1.jpg', logo: '/images/shops/shop-1.jpg' },
+      rating: 4.5,
+      totalRatings: 0,
+      totalOrders: 0,
+      avgPrepTime: 20,
+      deliveryCharge: 25,
+      freeDeliveryAbove: 299,
+      minOrderAmount: 0,
+      deliveryRadius: 5,
+      isOpen: true,
+      isFeatured: false,
+      address: { full: v.address, city: v.city, pincode: v.pincode, lat: 11.02, lng: 76.97 },
+      openTime: '08:00',
+      closeTime: '22:00',
+      tags: ['New', v.category],
+    }));
+
+  // Combine seed shops + approved vendor shops
+  const allShops = [...SEED_SHOPS, ...approvedVendorShops];
+
+  const filtered = allShops
     .filter(s => category === 'all' || s.categoryId === category)
     .filter(s => !onlyOpen || s.isOpen)
     .filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.description.toLowerCase().includes(search.toLowerCase()))

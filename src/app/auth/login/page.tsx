@@ -34,6 +34,7 @@ export default function LoginPage() {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return toast.error('Please fill all fields');
+    if (!auth) return toast.error('Firebase not initialized');
     setLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
@@ -65,6 +66,7 @@ export default function LoginPage() {
 
   const handleSendOtp = async () => {
     if (!phone || phone.length < 10) return toast.error('Enter valid 10-digit phone number');
+    if (!auth) return toast.error('Firebase not initialized');
     setLoading(true);
     try {
       // Clear previous recaptcha if any
