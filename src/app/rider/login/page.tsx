@@ -132,7 +132,7 @@ export default function RiderLoginPage() {
         {/* Help */}
         <div className="mt-6 text-center space-y-3">
           <p className="text-xs text-faint">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/rider/register" className="text-purple-600 dark:text-purple-400 font-bold hover:underline">
               Register as Rider
             </Link>

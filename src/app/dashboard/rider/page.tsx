@@ -59,10 +59,6 @@ export default function RiderDashboard() {
   const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
   const prevCountRef = useRef<number>(0);
 
-  useEffect(() => { setMounted(true); }, []);
-
-  if (!mounted) return <div className="min-h-screen app-bg" />;
-
   const riderId = user?.uid || 'rider-001';
 
   // Rider sees orders assigned to them (ready, picked_up, on_the_way)
@@ -74,6 +70,9 @@ export default function RiderDashboard() {
 
   // New delivery alert
   const readyCount = riderOrders.filter(o => o.status === 'ready').length;
+
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
     if (readyCount > prevCountRef.current && readyCount > 0) {
       playNewDeliverySound();
@@ -84,6 +83,8 @@ export default function RiderDashboard() {
     }
     prevCountRef.current = readyCount;
   }, [readyCount]);
+
+  if (!mounted) return <div className="min-h-screen app-bg" />;
 
   const earnings = {
     today: deliveredOrders.length * 45,

@@ -141,7 +141,7 @@ export default function VendorLoginPage() {
         {/* Help */}
         <div className="mt-6 text-center space-y-3">
           <p className="text-xs text-faint">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/shop/register" className="text-accent font-bold hover:underline">
               Register your shop
             </Link>

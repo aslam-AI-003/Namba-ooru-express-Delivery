@@ -80,7 +80,7 @@ export default function ShopRegisterPage() {
               <div className="w-6 h-6 rounded-full bg-orange-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-[10px] font-bold text-accent">2</span>
               </div>
-              <p className="text-xs text-muted">Once approved, you'll get login credentials (Phone + Shop ID)</p>
+              <p className="text-xs text-muted">Once approved, you&apos;ll get login credentials (Phone + Shop ID)</p>
             </div>
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-orange-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
