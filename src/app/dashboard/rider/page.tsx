@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useStore, DemoOrder } from '@/store/useStore';
+import { orderService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft, Bike, UserRound, MapPin, Phone, Store, CheckCircle2,
@@ -71,7 +72,18 @@ export default function RiderDashboard() {
   // New delivery alert
   const readyCount = riderOrders.filter(o => o.status === 'ready').length;
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    // Subscribe to real-time Firestore orders for this rider
+    if (riderId) {
+      const unsub = orderService.onRiderOrders(riderId, (firestoreOrders) => {
+        if (firestoreOrders.length > 0) {
+          console.log('🔄 Firestore rider orders synced:', firestoreOrders.length);
+        }
+      });
+      return () => unsub();
+    }
+  }, [riderId]);
 
   useEffect(() => {
     if (readyCount > prevCountRef.current && readyCount > 0) {
@@ -109,6 +121,8 @@ export default function RiderDashboard() {
     }
 
     updateDemoOrderStatus(orderId, newStatus);
+    // Sync to Firestore
+    orderService.updateStatus(orderId, newStatus).catch(() => {});
     if (newStatus === 'picked_up') {
       toast.success('Order picked up! Head to customer 🚴');
     } else if (newStatus === 'on_the_way') {
@@ -120,6 +134,8 @@ export default function RiderDashboard() {
     if (otpInput === currentOTP) {
       if (deliveryOrderId) {
         updateDemoOrderStatus(deliveryOrderId, 'delivered');
+        // Sync to Firestore
+        orderService.updateStatus(deliveryOrderId, 'delivered').catch(() => {});
         toast.success('Delivery completed! ₹45 earned 💰');
       }
       setShowOTPModal(false);

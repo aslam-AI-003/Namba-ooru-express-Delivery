@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore, DemoOrder } from '@/store/useStore';
+import { orderService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 import {
   Bell, CheckCircle2, ChefHat, Package, Bike, XCircle, Clock,
@@ -99,7 +100,18 @@ export default function OrderManagementPage() {
   const ringIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const prevNewCountRef = useRef<number>(0);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    // Subscribe to real-time Firestore orders for this vendor
+    if (user?.role === 'vendor' && user.uid) {
+      const unsub = orderService.onShopOrders(user.uid, (firestoreOrders) => {
+        if (firestoreOrders.length > 0) {
+          console.log('🔄 Firestore shop orders synced:', firestoreOrders.length);
+        }
+      });
+      return () => unsub();
+    }
+  }, [user?.uid, user?.role]);
 
   // Filter orders for THIS vendor only (if logged in as vendor)
   const vendorShopId = user?.role === 'vendor' ? user.uid : null;
@@ -169,7 +181,7 @@ export default function OrderManagementPage() {
     cancelled: myOrders.filter(o => o.status === 'cancelled').length,
   };
 
-  const handleStatusChange = (orderId: string, newStatus: DemoOrder['status']) => {
+  const handleStatusChange = async (orderId: string, newStatus: DemoOrder['status']) => {
     if (newStatus === 'ready') {
       // Auto-assign an available online rider
       const onlineRiders = riderRegistrations.filter(r => r.status === 'approved' && r.isOnline);
@@ -180,17 +192,27 @@ export default function OrderManagementPage() {
           riderId: assignedRider.riderId || assignedRider.id,
           riderName: assignedRider.name,
         });
+        // Sync to Firestore
+        orderService.updateStatus(orderId, newStatus, {
+          riderId: assignedRider.riderId || assignedRider.id,
+          riderName: assignedRider.name,
+        }).catch(() => {});
         toast.success(`Order ready! Rider assigned: ${assignedRider.name} 🚴`);
       } else {
-        // Fallback: assign to demo rider if no online riders
         updateDemoOrderStatus(orderId, newStatus, {
           riderId: 'rider-001',
           riderName: 'Murugan K (Auto)',
         });
+        orderService.updateStatus(orderId, newStatus, {
+          riderId: 'rider-001',
+          riderName: 'Murugan K (Auto)',
+        }).catch(() => {});
         toast.success('Order ready! No online riders — assigned to Murugan K');
       }
     } else {
       updateDemoOrderStatus(orderId, newStatus);
+      // Sync to Firestore
+      orderService.updateStatus(orderId, newStatus).catch(() => {});
       const badge = STATUS_BADGE[newStatus];
       toast.success(`Order → ${badge?.label || newStatus}`);
     }
@@ -198,6 +220,7 @@ export default function OrderManagementPage() {
 
   const handleReject = (orderId: string) => {
     updateDemoOrderStatus(orderId, 'cancelled');
+    orderService.updateStatus(orderId, 'cancelled').catch(() => {});
     toast.error('Order rejected');
   };
 
