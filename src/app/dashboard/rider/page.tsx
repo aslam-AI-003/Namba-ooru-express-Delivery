@@ -2,13 +2,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useStore, DemoOrder } from '@/store/useStore';
 import { orderService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft, Bike, UserRound, MapPin, Phone, Store, CheckCircle2,
-  Navigation, Shield, Wallet, Clock, Package, TrendingUp, LogOut,
+  Navigation, Shield, Wallet, Clock, Package, TrendingUp, LogOut, MapPinned,
 } from 'lucide-react';
+
+// Dynamic import for map (client-only)
+const LiveMap = dynamic(() => import('@/components/ui/LiveMap'), { ssr: false });
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // RIDER DASHBOARD — Enhanced with OTP, Auto-assign, Earnings
@@ -58,7 +62,9 @@ export default function RiderDashboard() {
   const [otpInput, setOtpInput] = useState('');
   const [currentOTP, setCurrentOTP] = useState('');
   const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
+  const [riderGPS, setRiderGPS] = useState<{ lat: number; lng: number } | null>(null);
   const prevCountRef = useRef<number>(0);
+  const gpsWatchRef = useRef<number | null>(null);
 
   const riderId = user?.uid || 'rider-001';
 
@@ -72,8 +78,26 @@ export default function RiderDashboard() {
   // New delivery alert
   const readyCount = riderOrders.filter(o => o.status === 'ready').length;
 
+  // ━━━ GPS: Track rider's live location ━━━
   useEffect(() => {
     setMounted(true);
+
+    // Start GPS tracking
+    if (navigator.geolocation) {
+      // Get initial position
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setRiderGPS({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => console.log('GPS permission denied — using default'),
+        { enableHighAccuracy: true }
+      );
+      // Watch position (updates every few seconds when moving)
+      gpsWatchRef.current = navigator.geolocation.watchPosition(
+        (pos) => setRiderGPS({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 5000 }
+      );
+    }
+
     // Subscribe to real-time Firestore orders for this rider
     if (riderId) {
       const unsub = orderService.onRiderOrders(riderId, (firestoreOrders) => {
@@ -81,8 +105,15 @@ export default function RiderDashboard() {
           console.log('🔄 Firestore rider orders synced:', firestoreOrders.length);
         }
       });
-      return () => unsub();
+      return () => {
+        unsub();
+        if (gpsWatchRef.current !== null) navigator.geolocation.clearWatch(gpsWatchRef.current);
+      };
     }
+
+    return () => {
+      if (gpsWatchRef.current !== null) navigator.geolocation.clearWatch(gpsWatchRef.current);
+    };
   }, [riderId]);
 
   useEffect(() => {
@@ -241,6 +272,27 @@ export default function RiderDashboard() {
                 </span>
               </div>
 
+              {/* ━━━ LIVE MAP — Shop + Customer + Rider GPS ━━━ */}
+              <div className="rounded-xl overflow-hidden border border-subtle">
+                <LiveMap
+                  pins={[
+                    { lat: 10.787, lng: 79.138, label: activeOrder.shopName, type: 'shop', popup: `🏪 ${activeOrder.shopName}` },
+                    { lat: activeOrder.address.lat || 10.792, lng: activeOrder.address.lng || 79.145, label: activeOrder.customerName, type: 'customer', popup: `📍 ${activeOrder.address.fullAddress}` },
+                    ...(riderGPS ? [{ lat: riderGPS.lat, lng: riderGPS.lng, label: 'You', type: 'rider' as const, popup: '🛵 Your Location' }] : []),
+                  ]}
+                  className="h-44 w-full"
+                  showRoute={true}
+                />
+              </div>
+
+              {/* GPS Status */}
+              <div className="flex items-center gap-2 p-2 surface rounded-lg">
+                <MapPinned size={12} className={riderGPS ? 'text-emerald-500' : 'text-red-500'} />
+                <p className="text-[10px] text-faint">
+                  {riderGPS ? `📍 GPS Active: ${riderGPS.lat.toFixed(4)}, ${riderGPS.lng.toFixed(4)}` : '⚠️ GPS not available — enable location'}
+                </p>
+              </div>
+
               {/* Route: Shop → Customer */}
               <div className="space-y-2">
                 {/* Pickup */}
@@ -250,12 +302,13 @@ export default function RiderDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-body">Pickup: {activeOrder.shopName}</p>
-                    <p className="text-[10px] text-faint">📍 0.5 km away</p>
+                    <p className="text-[10px] text-faint">📍 Shop location</p>
                   </div>
                   {activeOrder.status === 'ready' && (
-                    <a href={`https://maps.google.com/?q=11.02,76.97`} target="_blank"
-                      className="p-2 bg-blue-500/10 rounded-lg">
-                      <Navigation size={12} className="text-blue-600" />
+                    <a href={`https://www.google.com/maps/dir/?api=1${riderGPS ? `&origin=${riderGPS.lat},${riderGPS.lng}` : ''}&destination=${encodeURIComponent(activeOrder.shopName + ' Thanjavur')}&travelmode=driving`}
+                      target="_blank" rel="noopener"
+                      className="px-3 py-2 bg-blue-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-lg shadow-blue-500/20">
+                      <Navigation size={10} /> Navigate
                     </a>
                   )}
                 </div>
@@ -265,20 +318,33 @@ export default function RiderDashboard() {
                   <div className="w-0.5 h-4 bg-purple-500/30" />
                 </div>
 
-                {/* Drop */}
-                <div className="p-3 surface rounded-xl flex items-center gap-3">
-                  <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                    <UserRound size={14} className="text-emerald-600" />
+                {/* Drop — Customer Address */}
+                <div className="p-3 surface rounded-xl space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                      <UserRound size={14} className="text-emerald-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-body">Drop: {activeOrder.customerName}</p>
+                      <p className="text-[10px] text-faint">📞 {activeOrder.customerPhone}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-body">Drop: {activeOrder.customerName}</p>
-                    <p className="text-[10px] text-faint truncate">📍 {activeOrder.address.fullAddress}</p>
-                    <p className="text-[10px] text-faint">📞 {activeOrder.customerPhone}</p>
+                  {/* Full address display */}
+                  <div className="p-2.5 bg-emerald-500/5 border border-emerald-500/15 rounded-lg">
+                    <p className="text-[11px] font-semibold text-body flex items-start gap-1.5">
+                      <MapPin size={12} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                      {activeOrder.address.fullAddress}
+                    </p>
+                    {activeOrder.address.label && (
+                      <p className="text-[9px] text-faint mt-0.5 ml-4">📌 {activeOrder.address.label}</p>
+                    )}
                   </div>
+                  {/* Navigate to Customer button */}
                   {['picked_up', 'on_the_way'].includes(activeOrder.status) && (
-                    <a href={`https://maps.google.com/?q=${activeOrder.address.lat},${activeOrder.address.lng}`} target="_blank"
-                      className="p-2 bg-blue-500/10 rounded-lg">
-                      <Navigation size={12} className="text-blue-600" />
+                    <a href={`https://www.google.com/maps/dir/?api=1${riderGPS ? `&origin=${riderGPS.lat},${riderGPS.lng}` : ''}&destination=${encodeURIComponent(activeOrder.address.fullAddress)}&travelmode=driving`}
+                      target="_blank" rel="noopener"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20">
+                      <Navigation size={12} /> Navigate to Customer
                     </a>
                   )}
                 </div>
