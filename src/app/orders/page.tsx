@@ -160,6 +160,8 @@ export default function OrdersPage() {
 
   const isDemoOrder = (orderId: string) => demoOrders.some(d => d.id === orderId);
 
+  const { addShopReview } = useStore();
+
   const handleRatingSubmit = async (order: Order, rating: number, review: string) => {
     try {
       const demoOrder = demoOrders.find(d => d.id === order.id);
@@ -168,6 +170,18 @@ export default function OrdersPage() {
       } else {
         await rateOrder(order.id!, rating, review);
       }
+
+      // Save review to store (appears on shop detail page)
+      addShopReview({
+        id: 'rev-' + Date.now().toString(36),
+        shopId: order.shopId || (demoOrder?.shopId ?? ''),
+        orderId: order.id || demoOrder?.id || '',
+        customerName: user?.displayName || 'Customer',
+        rating,
+        review,
+        createdAt: new Date().toISOString(),
+      });
+
       setRatingOrder(null);
       toast.success(`Thanks for your ${rating}-star review!`);
     } catch {

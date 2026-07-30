@@ -94,6 +94,18 @@ export interface VendorRegistration {
   createdAt: string;
 }
 
+// Shop Review (submitted by customers after delivery)
+export interface ShopReview {
+  id: string;
+  shopId: string;
+  orderId: string;
+  customerName: string;
+  rating: number; // 1-5
+  review: string;
+  tags?: string[];
+  createdAt: string; // ISO string
+}
+
 // Demo Order (local state for full flow testing)
 export interface DemoOrder {
   id: string;
@@ -181,6 +193,11 @@ interface StoreState {
   getDemoOrdersByUser: (userId: string) => DemoOrder[];
   getDemoOrdersByRider: (riderId: string) => DemoOrder[];
   getPendingDemoOrders: () => DemoOrder[];
+
+  // ── SHOP REVIEWS (submitted by customers) ──
+  shopReviews: ShopReview[];
+  addShopReview: (review: ShopReview) => void;
+  getShopReviews: (shopId: string) => ShopReview[];
 
   // Favorites
   favoriteShopIds: string[];
@@ -321,6 +338,11 @@ export const useStore = create<StoreState>()(
         ['placed', 'confirmed', 'preparing', 'ready'].includes(o.status)
       ),
 
+      // ── SHOP REVIEWS ──
+      shopReviews: [],
+      addShopReview: (review) => set({ shopReviews: [review, ...get().shopReviews] }),
+      getShopReviews: (shopId) => get().shopReviews.filter(r => r.shopId === shopId),
+
       // Favorites
       favoriteShopIds: [],
       toggleFavorite: (shopId) => {
@@ -441,6 +463,7 @@ export const useStore = create<StoreState>()(
         vendorRegistrations: state.vendorRegistrations,
         vendorProducts: state.vendorProducts,
         riderRegistrations: state.riderRegistrations,
+        shopReviews: state.shopReviews,
       }),
     }
   )

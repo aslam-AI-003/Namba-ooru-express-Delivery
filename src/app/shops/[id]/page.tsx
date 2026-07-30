@@ -12,6 +12,82 @@ import { useStore } from '@/store/useStore';
 import { SEED_SHOPS, SEED_PRODUCTS } from '@/lib/seed-data';
 import toast from 'react-hot-toast';
 
+// ━━━ REVIEWS SECTION (real reviews from store + sample fallback) ━━━
+function ReviewsSection({ shopId, shopRating, shopTotalRatings }: { shopId: string; shopRating: number; shopTotalRatings: number }) {
+  const { getShopReviews } = useStore();
+  const storeReviews = getShopReviews(shopId);
+
+  // Default reviews (shown when no real reviews yet)
+  const defaultReviews = [
+    { id: 'd1', customerName: 'Ravi Kumar', rating: 5, review: 'Excellent quality and fast delivery! Highly recommended.', createdAt: new Date(Date.now() - 2*86400000).toISOString() },
+    { id: 'd2', customerName: 'Priya S', rating: 4, review: 'Good products, fresh and well-packed. Will order again.', createdAt: new Date(Date.now() - 7*86400000).toISOString() },
+    { id: 'd3', customerName: 'Murugan T', rating: 5, review: 'Best shop in Thanjavur! Always on time.', createdAt: new Date(Date.now() - 14*86400000).toISOString() },
+  ];
+
+  const allReviews = storeReviews.length > 0 ? storeReviews : defaultReviews;
+  const avgRating = storeReviews.length > 0
+    ? (storeReviews.reduce((sum, r) => sum + r.rating, 0) / storeReviews.length).toFixed(1)
+    : shopRating.toString();
+  const totalCount = storeReviews.length > 0 ? storeReviews.length : shopTotalRatings || 3;
+
+  const timeAgo = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
+    return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? 's' : ''} ago`;
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Rating Summary */}
+      <div className="glass-card p-5 text-center">
+        <div className="text-5xl font-black text-body">{avgRating}</div>
+        <div className="flex justify-center gap-1 mt-2">
+          {[1,2,3,4,5].map(s => (
+            <Star key={s} size={16} fill={s <= Math.round(Number(avgRating)) ? '#F97316' : 'none'} stroke={s <= Math.round(Number(avgRating)) ? '#F97316' : 'var(--card-border)'} />
+          ))}
+        </div>
+        <p className="text-sm text-muted mt-1">Based on {totalCount} reviews</p>
+      </div>
+
+      {/* Individual Reviews */}
+      {allReviews.map((r) => (
+        <div key={r.id} className="glass-sm p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-orange-500/15 rounded-full flex items-center justify-center text-sm font-bold text-accent">
+                {r.customerName[0]}
+              </div>
+              <span className="text-sm font-semibold text-body">{r.customerName}</span>
+            </div>
+            <span className="text-xs text-faint">{timeAgo(r.createdAt)}</span>
+          </div>
+          <div className="flex gap-0.5 mb-2">
+            {[1,2,3,4,5].map(s => <Star key={s} size={12} fill={s <= r.rating ? '#F97316' : 'none'} stroke={s <= r.rating ? '#F97316' : 'var(--card-border)'} />)}
+          </div>
+          {r.review && <p className="text-xs text-muted leading-relaxed">{r.review}</p>}
+          {'tags' in r && (r as any).tags?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {(r as any).tags.map((tag: string) => (
+                <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/8 text-accent border border-orange-500/15">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {storeReviews.length === 0 && (
+        <p className="text-center text-xs text-faint py-2">Order from this shop and leave your review! ⭐</p>
+      )}
+    </div>
+  );
+}
+
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { cart, addToCart, updateQuantity, removeFromCart, favoriteShopIds, toggleFavorite, vendorRegistrations, vendorProducts } = useStore();
@@ -269,36 +345,7 @@ export default function ShopDetailPage() {
         )}
 
         {activeTab === 'reviews' && (
-          <div className="space-y-3">
-            <div className="glass-card p-5 text-center">
-              <div className="text-5xl font-black text-body">{shop.rating}</div>
-              <div className="flex justify-center gap-1 mt-2">
-                {[1,2,3,4,5].map(s => (
-                  <Star key={s} size={16} fill={s <= Math.round(shop.rating) ? '#F97316' : 'none'} stroke={s <= Math.round(shop.rating) ? '#F97316' : 'var(--card-border)'} />
-                ))}
-              </div>
-              <p className="text-sm text-muted mt-1">Based on {shop.totalRatings} reviews</p>
-            </div>
-            {[
-              { name: 'Ravi Kumar', rating: 5, comment: 'Excellent quality and fast delivery! Highly recommended.', time: '2 days ago' },
-              { name: 'Priya S', rating: 4, comment: 'Good products, fresh and well-packed. Will order again.', time: '1 week ago' },
-              { name: 'Murugan T', rating: 5, comment: 'Best shop in Thanjavur! Always on time.', time: '2 weeks ago' },
-            ].map((r, i) => (
-              <div key={i} className="glass-sm p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-orange-500/15 rounded-full flex items-center justify-center text-sm font-bold text-accent">{r.name[0]}</div>
-                    <span className="text-sm font-semibold text-body">{r.name}</span>
-                  </div>
-                  <span className="text-xs text-faint">{r.time}</span>
-                </div>
-                <div className="flex gap-0.5 mb-2">
-                  {[1,2,3,4,5].map(s => <Star key={s} size={12} fill={s <= r.rating ? '#F97316' : 'none'} stroke={s <= r.rating ? '#F97316' : 'var(--card-border)'} />)}
-                </div>
-                <p className="text-xs text-muted leading-relaxed">{r.comment}</p>
-              </div>
-            ))}
-          </div>
+          <ReviewsSection shopId={shop.id} shopRating={shop.rating} shopTotalRatings={shop.totalRatings} />
         )}
       </div>
 
