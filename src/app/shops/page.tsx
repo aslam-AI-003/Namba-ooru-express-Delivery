@@ -4,18 +4,22 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Search, Star, Zap, MapPin, Heart, Store } from 'lucide-react';
+import { ArrowLeft, Search, Star, Zap, MapPin, Heart, Store, Navigation } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { SEED_SHOPS, SEED_CATEGORIES } from '@/lib/seed-data';
+import { getAreaById, getDistanceKm } from '@/lib/serviceAreas';
 
 function ShopsContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
-  const { favoriteShopIds, toggleFavorite, vendorRegistrations } = useStore();
+  const { favoriteShopIds, toggleFavorite, vendorRegistrations, selectedAreaId } = useStore();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState<'rating' | 'time' | 'orders'>('rating');
   const [onlyOpen, setOnlyOpen] = useState(false);
+
+  // Get selected area for filtering
+  const selectedArea = getAreaById(selectedAreaId);
 
   // Convert approved vendor registrations to shop format
   const approvedVendorShops = vendorRegistrations
@@ -45,7 +49,25 @@ function ShopsContent() {
   // Combine seed shops + approved vendor shops
   const allShops = [...SEED_SHOPS, ...approvedVendorShops];
 
-  const filtered = allShops
+  // ━━━ AREA-BASED FILTERING ━━━
+  // Show shops in selected area OR within 15km radius
+  const areaFilteredShops = selectedArea
+    ? allShops.filter(shop => {
+        // Match by city name (case-insensitive)
+        const shopCity = (shop.address?.city || '').toLowerCase();
+        const areaName = selectedArea.name.toLowerCase();
+        const areaDistrict = selectedArea.district.toLowerCase();
+        if (shopCity === areaName || shopCity === areaDistrict) return true;
+        // Match by distance (within 15km of selected area)
+        if (shop.address?.lat && shop.address?.lng) {
+          const dist = getDistanceKm(selectedArea.lat, selectedArea.lng, shop.address.lat, shop.address.lng);
+          return dist <= 15;
+        }
+        return true; // Show shops without coordinates (demo)
+      })
+    : allShops;
+
+  const filtered = areaFilteredShops
     .filter(s => category === 'all' || s.categoryId === category)
     .filter(s => !onlyOpen || s.isOpen)
     .filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.description.toLowerCase().includes(search.toLowerCase()))
@@ -77,6 +99,19 @@ function ShopsContent() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 pt-4">
+        {/* Area indicator */}
+        {selectedArea && (
+          <div className="flex items-center gap-2 mb-3 p-2.5 surface rounded-xl">
+            <MapPin size={13} className="text-accent" />
+            <p className="text-xs text-muted flex-1">
+              Showing shops in <span className="font-bold text-body">{selectedArea.name}</span>
+              <span className="text-faint"> ({selectedArea.nameTamil})</span>
+              <span className="text-faint"> • within 15km</span>
+            </p>
+            <Link href="/" className="text-[10px] font-bold text-accent hover:underline">Change ↗</Link>
+          </div>
+        )}
+
         {/* Category tabs */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
           <button onClick={() => setCategory('all')}
