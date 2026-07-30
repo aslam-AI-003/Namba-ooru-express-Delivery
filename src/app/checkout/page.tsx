@@ -16,6 +16,7 @@ import {
   addNotification,
 } from '@/lib/firebaseService';
 import { NOTIFICATIONS } from '@/lib/pushNotification';
+import { validateCoupon, getBestCouponSuggestion, CouponResult } from '@/lib/coupons';
 import toast from 'react-hot-toast';
 
 const PAYMENT_METHODS = [
@@ -40,12 +41,39 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
   const orderPlacedRef = useRef(false);
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponResult, setCouponResult] = useState<CouponResult | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+
   useEffect(() => { setMounted(true); }, []);
 
   const shop = SEED_SHOPS.find(s => s.id === cartShopId);
   const subtotal = getCartTotal();
   const deliveryCharge = subtotal >= 500 ? 0 : 50;
-  const total = subtotal + deliveryCharge;
+  const total = subtotal + deliveryCharge - couponDiscount;
+
+  // Smart coupon suggestion
+  const suggestedCoupon = getBestCouponSuggestion(subtotal);
+
+  const handleApplyCoupon = () => {
+    if (!couponCode.trim()) { toast.error('Enter a coupon code'); return; }
+    const result = validateCoupon(couponCode, subtotal, { isFirstOrder: true, shopId: cartShopId || '' });
+    setCouponResult(result);
+    if (result.valid) {
+      setCouponDiscount(result.discount);
+      toast.success(result.message);
+    } else {
+      setCouponDiscount(0);
+      toast.error(result.message);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setCouponResult(null);
+    setCouponDiscount(0);
+  };
   const selectedAddress = addresses.find(a => a.id === selectedAddressId) || addresses[0];
 
   useEffect(() => {
@@ -192,10 +220,21 @@ export default function CheckoutPage() {
             {deliveryCharge > 0 && (
               <p className="text-[10px] text-faint">Add ₹{500 - subtotal} more for free delivery</p>
             )}
+            {couponDiscount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-emerald-600 dark:text-emerald-400 font-medium">🏷️ Coupon ({couponCode})</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">-₹{couponDiscount}</span>
+              </div>
+            )}
             <div className="divider my-1" />
             <div className="flex justify-between">
               <span className="font-black text-body">Total</span>
-              <span className="font-black text-accent text-lg">₹{total}</span>
+              <div className="text-right">
+                {couponDiscount > 0 && (
+                  <span className="text-xs text-faint line-through mr-2">₹{subtotal + deliveryCharge}</span>
+                )}
+                <span className="font-black text-accent text-lg">₹{total}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -257,6 +296,83 @@ export default function CheckoutPage() {
             <div className="mt-3">
               <input value={upiId} onChange={e => setUpiId(e.target.value)}
                 placeholder="Enter UPI ID (e.g. name@upi)" className="input-glass text-sm" />
+            </div>
+          )}
+        </div>
+
+        {/* 🏷️ COUPON / PROMO CODE */}
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-bold text-body mb-3 flex items-center gap-2">
+            <span className="text-base">🏷️</span> Apply Coupon
+          </h3>
+
+          {/* Coupon Input */}
+          {!couponResult?.valid ? (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  value={couponCode}
+                  onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Enter coupon code"
+                  className="input-glass text-sm flex-1 uppercase tracking-wider font-bold"
+                  onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+
+              {/* Error message */}
+              {couponResult && !couponResult.valid && (
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium">{couponResult.message}</p>
+              )}
+
+              {/* Smart suggestion */}
+              {suggestedCoupon && !couponResult?.valid && (
+                <button
+                  onClick={() => { setCouponCode(suggestedCoupon.code); }}
+                  className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/8 border border-emerald-500/20 text-left"
+                >
+                  <span className="text-sm">💡</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      Try: {suggestedCoupon.code}
+                    </p>
+                    <p className="text-[10px] text-muted truncate">{suggestedCoupon.description}</p>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                    {suggestedCoupon.type === 'percentage' ? `${suggestedCoupon.value}% OFF` : `₹${suggestedCoupon.value} OFF`}
+                  </span>
+                </button>
+              )}
+
+              {/* Browse coupons link */}
+              <Link href="/offers" className="text-[11px] text-accent font-bold flex items-center gap-1 hover:underline">
+                View all coupons →
+              </Link>
+            </div>
+          ) : (
+            /* Applied coupon display */
+            <div className="rounded-xl p-3 bg-emerald-500/8 border border-emerald-500/25">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🎉</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{couponResult.message}</p>
+                  <p className="text-[10px] text-muted mt-0.5">Code: {couponCode}</p>
+                </div>
+                <button onClick={handleRemoveCoupon} className="text-xs font-bold text-red-500 dark:text-red-400 hover:underline">
+                  Remove
+                </button>
+              </div>
+              {couponDiscount > 0 && (
+                <div className="mt-2 pt-2 border-t border-emerald-500/15 flex justify-between">
+                  <span className="text-xs text-muted">You save</span>
+                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">-₹{couponDiscount}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
