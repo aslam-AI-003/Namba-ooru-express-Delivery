@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Store, Check, Users, TrendingUp, Wallet, BarChart3, Upload, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { SEED_CATEGORIES } from '@/lib/seed-data';
 import { useStore, VendorRegistration } from '@/store/useStore';
+import { vendorService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 
 export default function ShopRegisterPage() {
@@ -28,7 +29,7 @@ export default function ShopRegisterPage() {
   const [bankAccount, setBankAccount] = useState('');
   const [ifscCode, setIfscCode] = useState('');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!shopName || !ownerName || !phone || !category || !address || !city) {
       toast.error('Please fill all required fields');
       return;
@@ -52,7 +53,19 @@ export default function ShopRegisterPage() {
       createdAt: new Date().toISOString(),
     };
 
+    // Save to Zustand (instant UI)
     addVendorRegistration(registration);
+
+    // Save to Firestore (persistence + multi-device)
+    try {
+      const firestoreId = await vendorService.create(registration);
+      if (firestoreId) {
+        console.log('✅ Vendor saved to Firestore:', firestoreId);
+      }
+    } catch (err) {
+      console.warn('Firestore write failed (demo mode):', err);
+    }
+
     setSubmitted(true);
     toast.success('Registration submitted successfully!');
   };

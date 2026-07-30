@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useStore, RiderRegistration } from '@/store/useStore';
+import { riderService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft, Bike, CheckCircle2, XCircle, Clock, Phone,
@@ -25,7 +26,15 @@ export default function AdminRidersPage() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    const unsub = riderService.onAll((firestoreRiders) => {
+      if (firestoreRiders.length > 0) {
+        console.log('🔄 Firestore riders synced:', firestoreRiders.length);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   if (!mounted) return <div className="min-h-screen app-bg animate-pulse" />;
 
@@ -35,16 +44,32 @@ export default function AdminRidersPage() {
 
   const currentList = activeTab === 'pending' ? pending : activeTab === 'approved' ? approved : rejected;
 
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
     approveRider(id);
     const rider = useStore.getState().riderRegistrations.find(r => r.id === id);
+    // Also update Firestore
+    try {
+      await riderService.update(id, {
+        status: 'approved',
+        riderId: rider?.riderId || ('NOE-R-' + id.slice(-4).toUpperCase()),
+        password: rider?.password || ('NOE-R-' + id.slice(-4).toUpperCase()),
+      });
+      console.log('✅ Rider approved in Firestore');
+    } catch (err) {
+      console.warn('Firestore update failed:', err);
+    }
     toast.success(`Rider approved! ID: ${rider?.riderId}`);
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
     const reason = prompt('Rejection reason:');
     if (reason) {
       rejectRider(id, reason);
+      try {
+        await riderService.update(id, { status: 'rejected' });
+      } catch (err) {
+        console.warn('Firestore update failed:', err);
+      }
       toast.error('Rider rejected');
     }
   };

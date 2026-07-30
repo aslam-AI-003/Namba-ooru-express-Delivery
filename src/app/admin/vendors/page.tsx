@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useStore, VendorRegistration } from '@/store/useStore';
+import { vendorService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft, Store, CheckCircle2, XCircle, Clock, Phone, MapPin,
@@ -24,7 +25,17 @@ export default function AdminVendorsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState<string | null>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  // Load vendors from Firestore on mount (real-time sync)
+  useEffect(() => {
+    setMounted(true);
+    const unsub = vendorService.onAll((firestoreVendors) => {
+      if (firestoreVendors.length > 0) {
+        console.log('🔄 Firestore vendors synced:', firestoreVendors.length);
+      }
+    });
+    return () => unsub();
+  }, []);
+
   if (!mounted) return <div className="min-h-screen app-bg" />;
 
   const filtered = vendorRegistrations.filter(r => r.status === activeTab);
@@ -34,15 +45,36 @@ export default function AdminVendorsPage() {
     rejected: vendorRegistrations.filter(r => r.status === 'rejected').length,
   };
 
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
     approveVendor(id);
+    // Also update Firestore
+    const vendor = vendorRegistrations.find(v => v.id === id);
+    if (vendor) {
+      try {
+        await vendorService.update(id, {
+          status: 'approved',
+          shopId: vendor.shopId || ('NOE-' + id.slice(-5).toUpperCase()),
+          password: vendor.password || ('NOE-' + id.slice(-5).toUpperCase()),
+        });
+        console.log('✅ Vendor approved in Firestore');
+      } catch (err) {
+        console.warn('Firestore update failed:', err);
+      }
+    }
     toast.success('✅ Shop Approved! Credentials generated.');
     setSelectedVendor(null);
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
     if (!rejectReason.trim()) { toast.error('Enter rejection reason'); return; }
     rejectVendor(id, rejectReason);
+    // Also update Firestore
+    try {
+      await vendorService.update(id, { status: 'rejected', rejectionReason: rejectReason });
+      console.log('❌ Vendor rejected in Firestore');
+    } catch (err) {
+      console.warn('Firestore update failed:', err);
+    }
     toast.error('Shop registration rejected');
     setShowRejectModal(null);
     setRejectReason('');

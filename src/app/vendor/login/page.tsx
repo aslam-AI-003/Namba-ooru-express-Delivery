@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Store, Phone, Lock, LogIn, ArrowLeft } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { vendorService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

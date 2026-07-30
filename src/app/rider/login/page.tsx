@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bike, Phone, Lock, LogIn, ArrowLeft } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { riderService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 
 export default function RiderLoginPage() {

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bike, Check, ArrowLeft, Car, PersonStanding, Zap } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { riderService } from '@/lib/firestoreService';
 import toast from 'react-hot-toast';
 
 const VEHICLE_TYPES = [
@@ -28,13 +29,13 @@ export default function RiderRegisterPage() {
     vehicleType: 'Bike' as 'Bike' | 'Cycle' | 'Auto' | 'Walking',
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.city || !form.aadhaarNumber) {
       toast.error('Please fill all required fields');
       return;
     }
 
-    addRiderRegistration({
+    const riderData = {
       id: 'rider-reg-' + Date.now().toString(36),
       name: form.name,
       phone: form.phone,
@@ -43,9 +44,22 @@ export default function RiderRegisterPage() {
       vehicleType: form.vehicleType,
       aadhaarNumber: form.aadhaarNumber,
       licenseNumber: form.licenseNumber,
-      status: 'pending',
+      status: 'pending' as const,
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    // Save to Zustand (instant UI)
+    addRiderRegistration(riderData);
+
+    // Save to Firestore (persistence + multi-device)
+    try {
+      const firestoreId = await riderService.create(riderData);
+      if (firestoreId) {
+        console.log('✅ Rider saved to Firestore:', firestoreId);
+      }
+    } catch (err) {
+      console.warn('Firestore write failed (demo mode):', err);
+    }
 
     toast.success('Registration submitted! 🎉 Wait for admin approval.');
     setStep(4); // Success
