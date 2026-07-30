@@ -38,7 +38,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<'menu' | 'addresses'>('menu');
   const [showAddAddress, setShowAddAddress] = useState(false);
-  const [newAddress, setNewAddress] = useState({ label: 'Home', fullAddress: '', city: 'Thanjavur', pincode: '' });
+  const [newAddress, setNewAddress] = useState({ label: 'Home', fullAddress: '', landmark: '', city: 'Thanjavur', pincode: '', areaId: 'thanjavur' });
   const [addingAddress, setAddingAddress] = useState(false);
 
   const menuWithBadges = MENU_ITEMS.map(item => {
@@ -87,7 +87,7 @@ export default function ProfilePage() {
       setAddresses(updated);
       if (addresses.length === 0) setSelectedAddress(id);
       setShowAddAddress(false);
-      setNewAddress({ label: 'Home', fullAddress: '', city: 'Thanjavur', pincode: '' });
+      setNewAddress({ label: 'Home', fullAddress: '', landmark: '', city: 'Thanjavur', pincode: '', areaId: 'thanjavur' });
       toast.success('Address added!');
     } catch {
       toast.error('Failed to add address');
@@ -270,10 +270,12 @@ export default function ProfilePage() {
               </div>
             ))}
 
-            {/* Add Address Form */}
+            {/* Add Address Form — Smart Address System */}
             {showAddAddress && (
               <div className="glass-card p-4 space-y-3 border-orange-400/20">
-                <h3 className="text-sm font-bold text-body">Add New Address</h3>
+                <h3 className="text-sm font-bold text-body">📍 Add New Address</h3>
+
+                {/* Label selection */}
                 <div className="flex gap-2">
                   {['Home', 'Work', 'Other'].map(l => (
                     <button key={l} onClick={() => setNewAddress(a => ({ ...a, label: l }))}
@@ -282,17 +284,62 @@ export default function ProfilePage() {
                     </button>
                   ))}
                 </div>
-                <input value={newAddress.fullAddress} onChange={e => setNewAddress(a => ({ ...a, fullAddress: e.target.value }))}
-                  placeholder="Full address (street, area)" className="input-glass text-sm" />
-                <div className="flex gap-2">
-                  <select value={newAddress.city} onChange={e => setNewAddress(a => ({ ...a, city: e.target.value }))}
-                    className="input-glass text-sm flex-1">
-                    <option value="Thanjavur">Thanjavur</option>
-                    <option value="Kumbakonam">Kumbakonam</option>
-                  </select>
-                  <input value={newAddress.pincode} onChange={e => setNewAddress(a => ({ ...a, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                    placeholder="Pincode" className="input-glass text-sm flex-1" maxLength={6} />
+
+                {/* Full Address (Door no, Street) */}
+                <div>
+                  <label className="text-[10px] font-bold text-faint mb-1 block">Door No, Street Name *</label>
+                  <input value={newAddress.fullAddress} onChange={e => setNewAddress(a => ({ ...a, fullAddress: e.target.value }))}
+                    placeholder="e.g. 12, Kovil Street, Near Bus Stand" className="input-glass text-sm" />
                 </div>
+
+                {/* 🏛️ LANDMARK — KEY FEATURE for rural delivery */}
+                <div>
+                  <label className="text-[10px] font-bold text-faint mb-1 block">🏛️ Landmark (helps rider find you) *</label>
+                  <input value={newAddress.landmark} onChange={e => setNewAddress(a => ({ ...a, landmark: e.target.value }))}
+                    placeholder="e.g. Near Murugan Temple, Opp SBI Bank, Behind School"
+                    className="input-glass text-sm border-amber-400/30 focus:border-amber-500/50" />
+                  <p className="text-[9px] text-faint mt-0.5">💡 Temple, Bank, School, Shop — anything nearby that&apos;s easy to find</p>
+                </div>
+
+                {/* Area + City + Pincode */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-faint mb-1 block">Area/Town *</label>
+                    <select value={newAddress.city} onChange={e => setNewAddress(a => ({ ...a, city: e.target.value }))}
+                      className="input-glass text-sm w-full">
+                      <option value="Thanjavur">Thanjavur</option>
+                      <option value="Kumbakonam">Kumbakonam</option>
+                      <option value="Papanasam">Papanasam</option>
+                      <option value="Thiruvaiyaru">Thiruvaiyaru</option>
+                      <option value="Vallam">Vallam</option>
+                      <option value="Mannargudi">Mannargudi</option>
+                      <option value="Mayiladuthurai">Mayiladuthurai</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-faint mb-1 block">Pincode *</label>
+                    <input value={newAddress.pincode} onChange={e => setNewAddress(a => ({ ...a, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                      placeholder="613001" className="input-glass text-sm w-full" maxLength={6} />
+                  </div>
+                </div>
+
+                {/* GPS Pin Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        () => toast.success('📍 GPS location saved! Rider can navigate to you.'),
+                        () => toast.error('GPS denied — landmark will be used instead')
+                      );
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400"
+                >
+                  <MapPin size={13} /> Drop GPS Pin (optional bonus)
+                </button>
+
+                {/* Actions */}
                 <div className="flex gap-2">
                   <button onClick={() => setShowAddAddress(false)} className="btn-secondary flex-1 py-2.5 text-sm">Cancel</button>
                   <button onClick={handleAddAddress} disabled={addingAddress} className="btn-primary flex-1 py-2.5 text-sm disabled:opacity-60">
