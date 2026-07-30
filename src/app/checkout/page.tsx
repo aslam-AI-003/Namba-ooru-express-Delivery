@@ -15,6 +15,7 @@ import {
   deductFromWallet,
   addNotification,
 } from '@/lib/firebaseService';
+import { NOTIFICATIONS } from '@/lib/pushNotification';
 import toast from 'react-hot-toast';
 
 const PAYMENT_METHODS = [
@@ -130,6 +131,9 @@ export default function CheckoutPage() {
       // 4. Clear cart
       orderPlacedRef.current = true;
       clearCart();
+
+      // 5. Send push notification (non-blocking)
+      NOTIFICATIONS.orderPlaced(orderId).catch(() => {});
 
       toast.success('🎉 Order placed successfully!');
       router.push('/orders');
