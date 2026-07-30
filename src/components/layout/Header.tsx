@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Bike, ShoppingCart, UserRound, Menu, X, Home, Store, MapPin, Info } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import AreaSelector from '@/components/ui/AreaSelector';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -25,6 +26,9 @@ export default function Header() {
               <p className="text-xs text-faint -mt-0.5">Fast • Safe • Trusted</p>
             </div>
           </Link>
+
+          {/* Area Selector */}
+          <AreaSelector />
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">

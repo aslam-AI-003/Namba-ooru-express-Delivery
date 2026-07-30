@@ -140,6 +140,10 @@ interface StoreState {
   currentLocation: { lat: number; lng: number; address: string } | null;
   setLocation: (loc: { lat: number; lng: number; address: string }) => void;
 
+  // Service Area (Thanjavur-Kumbakonam corridor)
+  selectedAreaId: string; // area id from serviceAreas.ts
+  setSelectedArea: (areaId: string) => void;
+
   // Cart
   cart: CartItem[];
   cartShopId: string | null;
@@ -234,6 +238,10 @@ export const useStore = create<StoreState>()(
       // Location
       currentLocation: null,
       setLocation: (loc) => set({ currentLocation: loc }),
+
+      // Service Area
+      selectedAreaId: 'thanjavur',
+      setSelectedArea: (areaId) => set({ selectedAreaId: areaId }),
 
       // Cart
       cart: [],
@@ -425,6 +433,7 @@ export const useStore = create<StoreState>()(
         cartShopId: state.cartShopId,
         addresses: state.addresses,
         selectedAddressId: state.selectedAddressId,
+        selectedAreaId: state.selectedAreaId,
         favoriteShopIds: state.favoriteShopIds,
         currentLocation: state.currentLocation,
         demoOrders: state.demoOrders,

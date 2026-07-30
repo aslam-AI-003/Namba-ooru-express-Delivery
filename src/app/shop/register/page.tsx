@@ -7,6 +7,7 @@ import { Store, Check, Users, TrendingUp, Wallet, BarChart3, Upload, ArrowLeft, 
 import { SEED_CATEGORIES } from '@/lib/seed-data';
 import { useStore, VendorRegistration } from '@/store/useStore';
 import { vendorService } from '@/lib/firestoreService';
+import { SERVICE_AREAS } from '@/lib/serviceAreas';
 import toast from 'react-hot-toast';
 
 export default function ShopRegisterPage() {
@@ -28,6 +29,7 @@ export default function ShopRegisterPage() {
   const [fssaiNumber, setFssaiNumber] = useState('');
   const [bankAccount, setBankAccount] = useState('');
   const [ifscCode, setIfscCode] = useState('');
+  const [deliveryAreas, setDeliveryAreas] = useState<string[]>([]);
 
   const handleSubmit = async () => {
     if (!shopName || !ownerName || !phone || !category || !address || !city) {
@@ -202,12 +204,45 @@ export default function ShopRegisterPage() {
                 <label className="text-xs font-bold text-muted mb-1 block">FSSAI License (optional)</label>
                 <input value={fssaiNumber} onChange={e => setFssaiNumber(e.target.value)} placeholder="FSSAI Number" className="input-glass" />
               </div>
+
+              {/* Delivery Areas Multi-Select */}
+              <div>
+                <label className="text-xs font-bold text-muted mb-1 block">🚴 Delivery Coverage Areas *</label>
+                <p className="text-[10px] text-faint mb-2">Select areas where you can deliver (within 60km corridor)</p>
+                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto p-2 surface rounded-xl">
+                  {SERVICE_AREAS.map(area => (
+                    <button
+                      key={area.id}
+                      type="button"
+                      onClick={() => {
+                        setDeliveryAreas(prev =>
+                          prev.includes(area.id)
+                            ? prev.filter(a => a !== area.id)
+                            : [...prev, area.id]
+                        );
+                      }}
+                      className={`text-left px-2.5 py-2 rounded-lg text-[10px] font-medium border transition-all ${
+                        deliveryAreas.includes(area.id)
+                          ? 'bg-orange-500/10 border-orange-500/40 text-accent'
+                          : 'border-transparent hover:bg-[var(--card-hover)] text-muted'
+                      }`}
+                    >
+                      {deliveryAreas.includes(area.id) ? '✓ ' : ''}{area.name}
+                    </button>
+                  ))}
+                </div>
+                {deliveryAreas.length > 0 && (
+                  <p className="text-[10px] text-accent mt-1 font-bold">{deliveryAreas.length} areas selected</p>
+                )}
+              </div>
+
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="btn-secondary flex-1 py-3 flex items-center justify-center gap-2">
                   <ArrowLeft size={16} /> Back
                 </button>
                 <button onClick={() => {
                   if (!address || !city) { toast.error('Fill address and city'); return; }
+                  if (deliveryAreas.length === 0) { toast.error('Select at least 1 delivery area'); return; }
                   setStep(3);
                 }} className="btn-primary flex-1 py-3 flex items-center justify-center gap-2">
                   Next <ArrowRight size={16} />
