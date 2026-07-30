@@ -95,6 +95,7 @@ export default function LiveMap({
         mapInstanceRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update pins when they change (rider moving)
@@ -107,6 +108,7 @@ export default function LiveMap({
     };
 
     loadAndUpdate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pins, loaded]);
 
   const updatePins = (L: any, map: any, currentPins: MapPin[]) => {

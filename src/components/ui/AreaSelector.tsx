@@ -123,7 +123,7 @@ export default function AreaSelector() {
 
               {filteredAreas.length === 0 && (
                 <div className="text-center py-8">
-                  <p className="text-xs text-muted">No areas found for "{searchQuery}"</p>
+                  <p className="text-xs text-muted">No areas found for &ldquo;{searchQuery}&rdquo;</p>
                   <p className="text-[10px] text-faint mt-1">We serve Thanjavur-Kumbakonam area only</p>
                 </div>
               )}
