@@ -79,12 +79,12 @@ export default function RiderSupportPage() {
   return (
     <div className="pb-28">
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl border-b" style={{ background: 'rgba(18,18,18,0.85)', borderColor: 'rgba(255,193,7,0.1)' }}>
+      <header className="sticky top-0 z-30 header-glass">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-lg font-black text-white flex items-center gap-2">
-            <HelpCircle size={20} className="text-[#ffc107]" /> Support
+          <h1 className="text-lg font-black text-body flex items-center gap-2">
+            <HelpCircle size={20} className="text-accent" /> Support
           </h1>
-          <p className="text-[11px] text-gray-400 mt-0.5">24/7 help available</p>
+          <p className="text-[11px] text-muted mt-0.5">24/7 help available</p>
         </div>
       </header>
 
@@ -96,8 +96,8 @@ export default function RiderSupportPage() {
             <Shield size={22} className="text-red-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-white">Emergency SOS</p>
-            <p className="text-[10px] text-gray-400">Accident or safety threat? Tap for immediate help</p>
+            <p className="text-sm font-bold text-body">Emergency SOS</p>
+            <p className="text-[10px] text-muted">Accident or safety threat? Tap for immediate help</p>
           </div>
           <button onClick={() => { toast.error('SOS Alert sent! Help is on the way!'); }}
             className="px-4 py-2.5 rounded-xl text-xs font-black"
@@ -115,21 +115,21 @@ export default function RiderSupportPage() {
           ].map(item => (
             <button key={item.label} onClick={item.action}
               className="p-4 rounded-2xl border text-center transition-all"
-              style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}>
+              style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
               <item.icon size={20} className="mx-auto mb-1.5" style={{ color: item.color }} />
-              <p className="text-[10px] font-bold text-white">{item.label}</p>
+              <p className="text-[10px] font-bold text-body">{item.label}</p>
             </button>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'var(--card-bg)' }}>
           {(['faq', 'chat', 'tickets'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all capitalize ${
-                activeTab === tab ? 'text-black shadow-lg' : 'text-gray-400'
+                activeTab === tab ? 'text-black shadow-lg' : 'text-muted'
               }`}
-              style={activeTab === tab ? { background: '#ffc107' } : {}}>
+              style={activeTab === tab ? { background: 'var(--orange)' } : {}}>
               {tab === 'faq' ? 'FAQ' : tab}
             </button>
           ))}
@@ -140,23 +140,23 @@ export default function RiderSupportPage() {
           <div className="space-y-4">
             {FAQ_CATEGORIES.map(cat => (
               <div key={cat.title}>
-                <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">{cat.title}</h3>
-                <div className="rounded-2xl border overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                <h3 className="text-[11px] font-bold text-faint uppercase tracking-wider mb-2 px-1">{cat.title}</h3>
+                <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
                   {cat.items.map((item, idx) => {
                     const key = `${cat.title}-${idx}`;
                     const isOpen = expandedFAQ === key;
                     return (
-                      <div key={key} className={idx > 0 ? 'border-t' : ''} style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+                      <div key={key} className={idx > 0 ? 'border-t' : ''} style={{ borderColor: 'var(--card-bg)' }}>
                         <button onClick={() => setExpandedFAQ(isOpen ? null : key)}
                           className="w-full flex items-center gap-3 p-4 text-left">
                           <div className="flex-1">
-                            <p className="text-xs font-semibold text-white">{item.q}</p>
+                            <p className="text-xs font-semibold text-body">{item.q}</p>
                           </div>
-                          <ChevronDown size={14} className={`text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                          <ChevronDown size={14} className={`text-faint transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {isOpen && (
                           <div className="px-4 pb-4 -mt-1">
-                            <p className="text-[11px] text-gray-400 leading-relaxed">{item.a}</p>
+                            <p className="text-[11px] text-muted leading-relaxed">{item.a}</p>
                           </div>
                         )}
                       </div>
@@ -170,7 +170,7 @@ export default function RiderSupportPage() {
 
         {/* Chat */}
         {activeTab === 'chat' && (
-          <div className="rounded-2xl border overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}>
+          <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
             {/* Messages */}
             <div className="h-80 overflow-y-auto p-4 space-y-3">
               {chatMessages.map(msg => (
@@ -180,29 +180,28 @@ export default function RiderSupportPage() {
                       ? 'rounded-br-md'
                       : 'rounded-bl-md'
                   }`} style={{
-                    background: msg.from === 'user' ? 'rgba(255,193,7,0.15)' : 'rgba(255,255,255,0.04)',
+                    background: msg.from === 'user' ? 'var(--card-border)' : 'var(--card-bg)',
                   }}>
-                    <p className="text-xs text-white leading-relaxed">{msg.text}</p>
-                    <p className="text-[9px] text-gray-500 mt-1 text-right">{msg.time}</p>
+                    <p className="text-xs text-body leading-relaxed">{msg.text}</p>
+                    <p className="text-[9px] text-faint mt-1 text-right">{msg.time}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t flex gap-2" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <div className="p-3 border-t flex gap-2" style={{ borderColor: 'var(--card-border)' }}>
               <input
                 value={chatMessage}
                 onChange={e => setChatMessage(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}
                 placeholder="Type your message..."
-                className="flex-1 px-4 py-2.5 rounded-xl text-xs text-white placeholder-gray-600 outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+                className="flex-1 px-4 py-2.5 rounded-xl text-xs text-body placeholder-gray-600 outline-none"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}
               />
               <button onClick={sendMessage}
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: '#ffc107' }}>
-                <Send size={14} className="text-black" />
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-orange-500">
+                <Send size={14} className="text-body" />
               </button>
             </div>
           </div>
@@ -213,27 +212,27 @@ export default function RiderSupportPage() {
           <div className="space-y-3">
             <button onClick={() => toast.success('New ticket form opening...')}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border text-xs font-bold"
-              style={{ background: 'rgba(255,193,7,0.06)', borderColor: 'rgba(255,193,7,0.2)', color: '#ffc107' }}>
+              style={{ background: 'rgba(255,193,7,0.06)', borderColor: 'rgba(255,193,7,0.2)', color: 'var(--orange)' }}>
               <Plus size={14} /> Raise New Ticket
             </button>
             {tickets.map(ticket => {
               const cfg = ticketStatusConfig[ticket.status as keyof typeof ticketStatusConfig];
               return (
-                <div key={ticket.id} className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.04)' }}>
+                <div key={ticket.id} className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-bg)' }}>
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: cfg.bg }}>
                     {ticket.status === 'open' ? <Clock size={16} style={{ color: cfg.color }} /> :
                      ticket.status === 'resolved' ? <CheckCircle2 size={16} style={{ color: cfg.color }} /> :
                      <Ticket size={16} style={{ color: cfg.color }} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{ticket.subject}</p>
-                    <p className="text-[10px] text-gray-500">{ticket.id} • {ticket.date}</p>
+                    <p className="text-xs font-semibold text-body truncate">{ticket.subject}</p>
+                    <p className="text-[10px] text-faint">{ticket.id} • {ticket.date}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] px-2 py-0.5 rounded-full font-bold capitalize" style={{ background: cfg.bg, color: cfg.color }}>
                       {ticket.status}
                     </span>
-                    <ChevronRight size={12} className="text-gray-600" />
+                    <ChevronRight size={12} className="text-faint" />
                   </div>
                 </div>
               );

@@ -78,12 +78,12 @@ export default function RiderInsurancePage() {
   return (
     <div className="pb-28">
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl border-b" style={{ background: 'rgba(18,18,18,0.85)', borderColor: 'rgba(255,193,7,0.1)' }}>
+      <header className="sticky top-0 z-30 header-glass">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-lg font-black text-white flex items-center gap-2">
+          <h1 className="text-lg font-black text-body flex items-center gap-2">
             <Heart size={20} className="text-[#ef4444]" /> Insurance
           </h1>
-          <p className="text-[11px] text-gray-400 mt-0.5">Your health & safety cover</p>
+          <p className="text-[11px] text-muted mt-0.5">Your health & safety cover</p>
         </div>
       </header>
 
@@ -92,8 +92,8 @@ export default function RiderInsurancePage() {
         {/* Coverage Summary */}
         <div className="rounded-2xl p-5 border" style={{ background: 'linear-gradient(135deg, rgba(239,68,68,0.06), rgba(139,92,246,0.04))', borderColor: 'rgba(239,68,68,0.12)' }}>
           <div className="text-center mb-3">
-            <p className="text-xs text-gray-400">Total Coverage</p>
-            <p className="text-3xl font-black text-white">₹17,00,000</p>
+            <p className="text-xs text-muted">Total Coverage</p>
+            <p className="text-3xl font-black text-body">₹17,00,000</p>
             <p className="text-[10px] text-emerald-400 mt-1 font-bold">✓ All policies active</p>
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -102,34 +102,34 @@ export default function RiderInsurancePage() {
               { label: 'Accident', amount: '₹5L', color: '#f59e0b' },
               { label: 'Life', amount: '₹10L', color: '#8b5cf6' },
             ].map(item => (
-              <div key={item.label} className="text-center p-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-sm font-black text-white">{item.amount}</p>
-                <p className="text-[9px] text-gray-500">{item.label}</p>
+              <div key={item.label} className="text-center p-2.5 rounded-xl" style={{ background: 'var(--card-bg)' }}>
+                <p className="text-sm font-black text-body">{item.amount}</p>
+                <p className="text-[9px] text-faint">{item.label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Nominee Card */}
-        <div className="rounded-2xl p-4 border flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="rounded-2xl p-4 border flex items-center gap-3" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
             <User size={18} className="text-purple-400" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-bold text-white">Nominee: Priya M</p>
-            <p className="text-[10px] text-gray-500">Spouse • +91 98765 43210</p>
+            <p className="text-xs font-bold text-body">Nominee: Priya M</p>
+            <p className="text-[10px] text-faint">Spouse • +91 98765 43210</p>
           </div>
-          <button onClick={() => toast('Edit nominee')} className="text-[10px] text-[#ffc107] font-bold">Edit</button>
+          <button onClick={() => toast('Edit nominee')} className="text-[10px] text-accent font-bold">Edit</button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'var(--card-bg)' }}>
           {(['policies', 'claims', 'hospitals'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all capitalize ${
-                activeTab === tab ? 'text-black shadow-lg' : 'text-gray-400'
+                activeTab === tab ? 'text-black shadow-lg' : 'text-muted'
               }`}
-              style={activeTab === tab ? { background: '#ffc107' } : {}}>
+              style={activeTab === tab ? { background: 'var(--orange)' } : {}}>
               {tab}
             </button>
           ))}
@@ -142,31 +142,31 @@ export default function RiderInsurancePage() {
               const Icon = typeIcons[policy.type];
               const cfg = statusConfig[policy.status];
               return (
-                <div key={policy.id} className="rounded-2xl p-4 border" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                <div key={policy.id} className="rounded-2xl p-4 border" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
                   <div className="flex items-start gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: cfg.bg }}>
                       <Icon size={18} style={{ color: cfg.color }} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-white">{policy.name}</h3>
+                        <h3 className="text-sm font-bold text-body">{policy.name}</h3>
                         <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
                       </div>
-                      <p className="text-[10px] text-gray-500">{policy.provider}</p>
-                      <p className="text-[10px] text-gray-500 mt-0.5">Policy: {policy.policyNumber}</p>
+                      <p className="text-[10px] text-faint">{policy.provider}</p>
+                      <p className="text-[10px] text-faint mt-0.5">Policy: {policy.policyNumber}</p>
                     </div>
-                    <p className="text-sm font-black text-white">₹{(policy.coverAmount / 100000).toFixed(0)}L</p>
+                    <p className="text-sm font-black text-body">₹{(policy.coverAmount / 100000).toFixed(0)}L</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {policy.features.map(f => (
-                      <span key={f} className="text-[9px] px-2 py-0.5 rounded-full border text-gray-400" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      <span key={f} className="text-[9px] px-2 py-0.5 rounded-full border text-muted" style={{ borderColor: 'var(--card-border)' }}>
                         {f}
                       </span>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-                    <span className="text-[10px] text-gray-500">{policy.premium}</span>
-                    <span className="text-[10px] text-gray-500">{policy.startDate} → {policy.endDate}</span>
+                  <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--card-bg)' }}>
+                    <span className="text-[10px] text-faint">{policy.premium}</span>
+                    <span className="text-[10px] text-faint">{policy.startDate} → {policy.endDate}</span>
                   </div>
                 </div>
               );
@@ -179,22 +179,22 @@ export default function RiderInsurancePage() {
           <div className="space-y-2">
             <button onClick={() => toast.success('Claim form opening...')}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border text-xs font-bold mb-3"
-              style={{ background: 'rgba(255,193,7,0.06)', borderColor: 'rgba(255,193,7,0.2)', color: '#ffc107' }}>
+              style={{ background: 'rgba(255,193,7,0.06)', borderColor: 'rgba(255,193,7,0.2)', color: 'var(--orange)' }}>
               <Plus size={14} /> File New Claim
             </button>
             {claims.map(claim => {
               const cfg = statusConfig[claim.status as keyof typeof statusConfig];
               return (
-                <div key={claim.id} className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.04)' }}>
+                <div key={claim.id} className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-bg)' }}>
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: cfg.bg }}>
                     {claim.status === 'approved' ? <CheckCircle2 size={16} style={{ color: cfg.color }} /> :
                      claim.status === 'processing' ? <Clock size={16} style={{ color: cfg.color }} /> :
                      <FileText size={16} style={{ color: cfg.color }} />}
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-white">{claim.type} — {claim.amount}</p>
-                    <p className="text-[10px] text-gray-500">{claim.desc}</p>
-                    <p className="text-[9px] text-gray-600 mt-0.5">{claim.date}</p>
+                    <p className="text-xs font-semibold text-body">{claim.type} — {claim.amount}</p>
+                    <p className="text-[10px] text-faint">{claim.desc}</p>
+                    <p className="text-[9px] text-faint mt-0.5">{claim.date}</p>
                   </div>
                   <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{ background: cfg.bg, color: cfg.color }}>
                     {cfg.label}
@@ -209,16 +209,16 @@ export default function RiderInsurancePage() {
         {activeTab === 'hospitals' && (
           <div className="space-y-2">
             {hospitals.map(h => (
-              <div key={h.name} className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.04)' }}>
+              <div key={h.name} className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-bg)' }}>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.1)' }}>
                   <Building2 size={16} className="text-blue-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs font-semibold text-white">{h.name}</p>
-                  <p className="text-[10px] text-gray-500">{h.speciality} • {h.type}</p>
+                  <p className="text-xs font-semibold text-body">{h.name}</p>
+                  <p className="text-[10px] text-faint">{h.speciality} • {h.type}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-bold text-[#ffc107]">{h.dist}</p>
+                  <p className="text-[10px] font-bold text-accent">{h.dist}</p>
                   <button onClick={() => toast('Opening maps...')} className="text-[9px] text-blue-400">Navigate →</button>
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default function RiderInsurancePage() {
         {/* Download Policy */}
         <button onClick={() => toast.success('Policy PDF downloaded!')}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border text-xs font-bold"
-          style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)', color: '#aaa' }}>
+          style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)', color: '#aaa' }}>
           <Download size={14} /> Download Policy Card (PDF)
         </button>
       </div>

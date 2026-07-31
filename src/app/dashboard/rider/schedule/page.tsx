@@ -69,12 +69,12 @@ export default function RiderSchedulePage() {
   return (
     <div className="pb-28">
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl border-b" style={{ background: 'rgba(18,18,18,0.85)', borderColor: 'rgba(255,193,7,0.1)' }}>
+      <header className="sticky top-0 z-30 header-glass">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-lg font-black text-white flex items-center gap-2">
-            <CalendarClock size={20} className="text-[#ffc107]" /> Work Schedule
+          <h1 className="text-lg font-black text-body flex items-center gap-2">
+            <CalendarClock size={20} className="text-accent" /> Work Schedule
           </h1>
-          <p className="text-[11px] text-gray-400 mt-0.5">Choose your shifts & working days</p>
+          <p className="text-[11px] text-muted mt-0.5">Choose your shifts & working days</p>
         </div>
       </header>
 
@@ -91,8 +91,8 @@ export default function RiderSchedulePage() {
               {isOnBreak ? <Coffee size={22} className="text-amber-400" /> : <Play size={22} className="text-emerald-400" />}
             </div>
             <div className="flex-1">
-              <p className="text-sm font-bold text-white">{isOnBreak ? 'On Break' : 'Currently Active'}</p>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-sm font-bold text-body">{isOnBreak ? 'On Break' : 'Currently Active'}</p>
+              <p className="text-[11px] text-muted">
                 {isOnBreak ? `${breakTimer} min break remaining` : 'You are receiving orders'}
               </p>
             </div>
@@ -109,10 +109,10 @@ export default function RiderSchedulePage() {
         </div>
 
         {/* Weekly Overview */}
-        <div className="rounded-2xl p-4 border" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="rounded-2xl p-4 border" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white">Working Days</h3>
-            <span className="text-[11px] text-gray-400">{selectedDays.length} days selected</span>
+            <h3 className="text-sm font-bold text-body">Working Days</h3>
+            <span className="text-[11px] text-muted">{selectedDays.length} days selected</span>
           </div>
           <div className="flex gap-2">
             {DAYS.map(day => {
@@ -121,9 +121,9 @@ export default function RiderSchedulePage() {
                 <button key={day} onClick={() => toggleDay(day)}
                   className="flex-1 py-3 rounded-xl text-center text-xs font-bold transition-all border"
                   style={{
-                    background: isSelected ? 'rgba(255,193,7,0.12)' : 'rgba(255,255,255,0.02)',
-                    borderColor: isSelected ? 'rgba(255,193,7,0.35)' : 'rgba(255,255,255,0.06)',
-                    color: isSelected ? '#ffc107' : '#666',
+                    background: isSelected ? 'rgba(255,193,7,0.12)' : 'var(--card-bg)',
+                    borderColor: isSelected ? 'rgba(255,193,7,0.35)' : 'var(--card-border)',
+                    color: isSelected ? 'var(--orange)' : '#666',
                   }}>
                   {day}
                 </button>
@@ -133,10 +133,10 @@ export default function RiderSchedulePage() {
         </div>
 
         {/* Shift Selection */}
-        <div className="rounded-2xl p-4 border" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="rounded-2xl p-4 border" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white">Choose Shifts</h3>
-            <span className="text-[11px] text-[#ffc107] font-bold">{selectedShifts.length} selected</span>
+            <h3 className="text-sm font-bold text-body">Choose Shifts</h3>
+            <span className="text-[11px] text-accent font-bold">{selectedShifts.length} selected</span>
           </div>
           <div className="space-y-2.5">
             {SHIFTS.map(shift => {
@@ -147,21 +147,21 @@ export default function RiderSchedulePage() {
                   className="w-full flex items-center gap-3 p-3.5 rounded-xl border transition-all text-left"
                   style={{
                     background: isSelected ? `${shift.color}08` : 'rgba(255,255,255,0.01)',
-                    borderColor: isSelected ? `${shift.color}35` : 'rgba(255,255,255,0.06)',
+                    borderColor: isSelected ? `${shift.color}35` : 'var(--card-border)',
                   }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${shift.color}15` }}>
                     <shift.icon size={18} style={{ color: shift.color }} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-white">{shift.label}</p>
+                      <p className="text-sm font-bold text-body">{shift.label}</p>
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold border"
                         style={{ background: demand.bg, color: demand.text, borderColor: demand.border }}>
                         {shift.demand}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-[11px] text-gray-400 flex items-center gap-1"><Clock size={9} /> {shift.time}</span>
+                      <span className="text-[11px] text-muted flex items-center gap-1"><Clock size={9} /> {shift.time}</span>
                       <span className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: shift.color }}>
                         <Zap size={8} /> {shift.multiplier}
                       </span>
@@ -178,22 +178,22 @@ export default function RiderSchedulePage() {
         </div>
 
         {/* Estimated Summary */}
-        <div className="rounded-2xl p-4 border" style={{ background: 'linear-gradient(135deg, rgba(255,193,7,0.06), rgba(139,92,246,0.04))', borderColor: 'rgba(255,193,7,0.15)' }}>
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <TrendingUp size={14} className="text-[#ffc107]" /> Weekly Estimate
+        <div className="rounded-2xl p-4 border" style={{ background: 'linear-gradient(135deg, rgba(255,193,7,0.06), rgba(139,92,246,0.04))', borderColor: 'var(--card-border)' }}>
+          <h3 className="text-sm font-bold text-body mb-3 flex items-center gap-2">
+            <TrendingUp size={14} className="text-accent" /> Weekly Estimate
           </h3>
           <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <p className="text-lg font-black text-white">{totalHours}h</p>
-              <p className="text-[9px] text-gray-500">Total Hours</p>
+            <div className="text-center p-3 rounded-xl" style={{ background: 'var(--card-bg)' }}>
+              <p className="text-lg font-black text-body">{totalHours}h</p>
+              <p className="text-[9px] text-faint">Total Hours</p>
             </div>
-            <div className="text-center p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <p className="text-lg font-black text-[#ffc107]">₹{Math.round(totalHours * 85)}</p>
-              <p className="text-[9px] text-gray-500">Est. Earnings</p>
+            <div className="text-center p-3 rounded-xl" style={{ background: 'var(--card-bg)' }}>
+              <p className="text-lg font-black text-accent">₹{Math.round(totalHours * 85)}</p>
+              <p className="text-[9px] text-faint">Est. Earnings</p>
             </div>
-            <div className="text-center p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div className="text-center p-3 rounded-xl" style={{ background: 'var(--card-bg)' }}>
               <p className="text-lg font-black text-emerald-400">{Math.round(totalHours * 1.8)}</p>
-              <p className="text-[9px] text-gray-500">Est. Orders</p>
+              <p className="text-[9px] text-faint">Est. Orders</p>
             </div>
           </div>
         </div>
@@ -201,7 +201,7 @@ export default function RiderSchedulePage() {
         {/* Save Button */}
         <button onClick={() => toast.success('Schedule saved! ✅')}
           className="w-full py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2 shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-          style={{ background: 'linear-gradient(135deg, #ffc107, #ff9800)', color: '#121212' }}>
+          style={{ background: 'linear-gradient(135deg, var(--orange), #ff9800)', color: '#121212' }}>
           <CheckCircle2 size={16} /> Save Schedule
         </button>
 
