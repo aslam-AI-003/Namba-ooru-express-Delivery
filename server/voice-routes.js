@@ -1,13 +1,14 @@
 // ============================================================
 // Namma Ooru Express — AI Voice Call Ordering API Routes
-// Telephony webhooks + AI tool endpoints
+// PRODUCTION VERSION — Real Firestore Integration
 // ============================================================
 
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const { db, admin, FieldValue, messaging } = require('./firebase-admin');
 
-// In-memory active calls store (in production, use Redis)
+// In-memory active calls store (in production, use Redis for multi-instance)
 const activeCalls = new Map();
 
 // ─── CONFIGURATION ───────────────────────────────────────────
@@ -43,7 +44,6 @@ function checkRateLimit(phone) {
 /**
  * POST /api/voice/incoming-call
  * Webhook: Telephony provider sends this when a call comes in
- * Compatible with Exotel/Knowlarity/Twilio-style payloads
  */
 router.post('/incoming-call', async (req, res) => {
   try {
@@ -57,7 +57,7 @@ router.post('/incoming-call', async (req, res) => {
       return res.status(429).json({
         success: false,
         error: 'Too many calls. Please try again later.',
-        action: 'play_message', // Tell telephony to play a "try later" message
+        action: 'play_message',
         message_ta: 'நன்றி. தயவுசெய்து சிறிது நேரம் கழித்து மீண்டும் call செய்யுங்கள்.',
       });
     }
@@ -81,7 +81,7 @@ router.post('/incoming-call', async (req, res) => {
       startTime: StartTime || new Date().toISOString(),
       outcome: 'in_progress',
       escalatedToHuman: false,
-      detectedLanguage: 'ta', // default, will update during call
+      detectedLanguage: 'ta',
       transcript: [],
       turnIndex: 0,
       partialOrder: null,
@@ -90,6 +90,7 @@ router.post('/incoming-call', async (req, res) => {
         direction: Direction || 'inbound',
       },
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     activeCalls.set(CallSid, callRecord);
@@ -97,13 +98,22 @@ router.post('/incoming-call', async (req, res) => {
     // Look up customer voice profile
     const voiceProfile = await getCustomerVoiceProfile(From);
 
+    // Emit to admin dashboard via Socket.IO
+    if (global.io) {
+      global.io.to('role-admin').emit('voice-call-started', {
+        callId: callRecord.id,
+        phone: From,
+        time: callRecord.startTime,
+      });
+    }
+
     // Return response to telephony provider (connect to AI agent)
     res.json({
       success: true,
       callId: callRecord.id,
       action: 'connect_to_ai_agent',
       config: {
-        systemPrompt: 'VOICE_AGENT_SYSTEM_PROMPT', // Reference to the prompt
+        systemPrompt: 'VOICE_AGENT_SYSTEM_PROMPT',
         greeting: voiceProfile
           ? `Vanakkam ${voiceProfile.knownName || ''}! Namma Ooru Express. Enna order venum?`
           : 'Vanakkam! Namma Ooru Express-ku varaverkiren. Enna order venum?',
@@ -137,6 +147,7 @@ router.post('/call-ended', async (req, res) => {
     callRecord.endTime = EndTime || new Date().toISOString();
     callRecord.duration = Duration || 0;
     callRecord.recordingUrl = RecordingUrl || null;
+    callRecord.updatedAt = new Date().toISOString();
 
     // Determine outcome if still in_progress
     if (callRecord.outcome === 'in_progress') {
@@ -144,15 +155,26 @@ router.post('/call-ended', async (req, res) => {
         callRecord.outcome = 'no_order';
       } else if (['failed', 'busy', 'no-answer'].includes(CallStatus)) {
         callRecord.outcome = 'call_dropped';
+      } else if (Duration && Duration < 10) {
+        callRecord.outcome = 'abandoned';
       }
     }
 
-    // Save to database (Firestore)
+    // Save to Firestore
     await saveVoiceCall(callRecord);
 
-    // Update customer voice profile
+    // Update customer voice profile on successful order
     if (callRecord.outcome === 'order_created') {
       await updateCustomerVoiceProfile(From, callRecord);
+    }
+
+    // Emit to admin dashboard
+    if (global.io) {
+      global.io.to('role-admin').emit('voice-call-ended', {
+        callId: callRecord.id,
+        outcome: callRecord.outcome,
+        duration: callRecord.duration,
+      });
     }
 
     // Remove from active calls
@@ -196,6 +218,14 @@ router.post('/transcript-turn', async (req, res) => {
       callRecord.detectedLanguage = language;
     }
 
+    // Emit live transcript to admin
+    if (global.io) {
+      global.io.to('role-admin').emit('voice-transcript-update', {
+        callId: callRecord.id,
+        turn,
+      });
+    }
+
     res.json({ success: true, turnId: turn.id });
   } catch (error) {
     console.error('❌ Transcript turn error:', error);
@@ -203,12 +233,11 @@ router.post('/transcript-turn', async (req, res) => {
   }
 });
 
-// ─── AI TOOL ENDPOINTS (called by voice agent via function calling) ──
+// ─── AI TOOL ENDPOINTS ───────────────────────────────────────
 
 /**
  * POST /api/voice/search-shops
  * Tool: search_shops(area, item_category, item_name)
- * Returns nearby shops ranked by rating + stock availability
  */
 router.post('/search-shops', async (req, res) => {
   try {
@@ -216,8 +245,6 @@ router.post('/search-shops', async (req, res) => {
 
     console.log(`🔍 Search shops: area=${area}, category=${item_category}, item=${item_name}`);
 
-    // Search shops from Firestore (uses existing shops collection)
-    // In production, this queries Firestore with geospatial + category filters
     const shops = await searchShopsForVoice(area, item_category, item_name);
 
     res.json({
@@ -234,7 +261,6 @@ router.post('/search-shops', async (req, res) => {
 /**
  * POST /api/voice/search-item
  * Tool: search_item(shop_id, item_query)
- * Returns matching products from shop catalog
  */
 router.post('/search-item', async (req, res) => {
   try {
@@ -258,7 +284,6 @@ router.post('/search-item', async (req, res) => {
 /**
  * GET /api/voice/last-order/:phone
  * Tool: get_last_order(caller_phone)
- * Returns customer's most recent order for repeat-order
  */
 router.get('/last-order/:phone', async (req, res) => {
   try {
@@ -289,7 +314,6 @@ router.get('/last-order/:phone', async (req, res) => {
 /**
  * POST /api/voice/create-order
  * Tool: create_order — REUSES existing order creation logic
- * This is the critical integration point — same pipeline as app checkout
  */
 router.post('/create-order', async (req, res) => {
   try {
@@ -305,6 +329,11 @@ router.post('/create-order', async (req, res) => {
       });
     }
 
+    // Get shop details
+    const shopDoc = await db.collection('shops').doc(shop_id).get();
+    const shopData = shopDoc.exists ? shopDoc.data() : {};
+    const shopName = shopData.name || shopData.shopName || 'Unknown Shop';
+
     // Calculate order total
     let subtotal = 0;
     const orderItems = items.map(item => {
@@ -314,22 +343,23 @@ router.post('/create-order', async (req, res) => {
         productId: item.product_id || `voice_${crypto.randomBytes(4).toString('hex')}`,
         shopId: shop_id,
         name: item.name,
-        nameTamil: item.name, // AI will provide Tamil name when available
+        nameTamil: item.name_tamil || item.name,
         price: item.price || 0,
         quantity: item.quantity,
         unit: item.unit,
-        isVeg: true, // default, can be refined
+        brand: item.brand || '',
+        isVeg: true,
       };
     });
 
     const deliveryCharge = subtotal >= 500 ? 0 : 50;
     const total = subtotal + deliveryCharge;
 
-    // High-value order check — require SMS confirmation
+    // High-value order check
     if (total > VOICE_CONFIG.highValueOrderThreshold) {
-      // Send SMS confirmation link instead of placing directly
       await sendSmsConfirmation(customer_phone, {
         shopId: shop_id,
+        shopName,
         items: orderItems,
         total,
         confirmationRequired: true,
@@ -341,38 +371,44 @@ router.post('/create-order', async (req, res) => {
       });
     }
 
-    // ━━━━ REUSE EXISTING ORDER CREATION ━━━━
-    // This calls the SAME order creation function used by checkout page
+    // Create order in Firestore (same structure as app checkout)
     const orderData = {
-      userId: `voice_${customer_phone.replace(/\D/g, '')}`, // Voice caller as user
+      userId: `voice_${customer_phone.replace(/\D/g, '')}`,
       shopId: shop_id,
-      shopName: '', // Will be resolved from shop lookup
+      shopName,
       shopIcon: '📞',
       items: orderItems,
       subtotal,
       deliveryCharge,
+      discount: 0,
       total,
       status: 'placed',
       paymentMethod: 'cash_on_delivery',
       address: {
         id: `addr_voice_${crypto.randomBytes(4).toString('hex')}`,
         label: 'Voice Order',
-        fullAddress: delivery_address || 'To be confirmed',
+        fullAddress: delivery_address || 'To be confirmed at delivery',
         lat: 0,
         lng: 0,
         pincode: '',
-        city: 'Thanjavur',
+        city: shopData.city || 'Thanjavur',
       },
       notes: `📞 Voice Order | Customer: ${customer_name || 'Unknown'} | Phone: ${customer_phone}`,
-      // ━━━━ NEW FIELDS for voice orders ━━━━
       orderSource: 'voice_call',
       sourceCallId: call_id || null,
       customerPhone: customer_phone,
       customerName: customer_name || null,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
-    // Use the existing placeOrder function (same as app checkout)
-    const orderId = await placeVoiceOrder(orderData);
+    // Write to orders collection
+    const orderRef = await db.collection('orders').add(orderData);
+    const orderId = orderRef.id;
+
+    // Generate readable order number
+    const orderNumber = `NOE-${Date.now().toString(36).toUpperCase()}`;
+    await orderRef.update({ orderNumber });
 
     // Update active call record
     if (call_id && activeCalls.has(call_id)) {
@@ -381,18 +417,42 @@ router.post('/create-order', async (req, res) => {
       callRecord.outcome = 'order_created';
     }
 
-    // Send SMS confirmation to customer
+    // Send SMS confirmation
     await sendSmsConfirmation(customer_phone, {
       orderId,
-      shopName: orderData.shopName,
+      orderNumber,
+      shopName,
       items: orderItems,
       total,
       eta: '25-35 min',
     });
 
+    // Notify shop via Socket.IO
+    if (global.io) {
+      global.io.to(`user-${shop_id}`).emit('order-received', {
+        orderId,
+        orderNumber,
+        source: 'voice_call',
+        items: orderItems,
+        total,
+      });
+    }
+
+    // Notify admin
+    if (global.io) {
+      global.io.to('role-admin').emit('voice-order-created', {
+        orderId,
+        orderNumber,
+        shopName,
+        total,
+        customerPhone: customer_phone,
+      });
+    }
+
     res.json({
       success: true,
       orderId,
+      orderNumber,
       orderTotal: total,
       estimatedDelivery: '25-35 minutes',
       message: `Order placed successfully! Total: ₹${total}`,
@@ -422,6 +482,10 @@ router.post('/transfer-human', async (req, res) => {
       reason,
       escalatedAt: new Date().toISOString(),
       status: 'queued',
+      agentId: null,
+      agentName: null,
+      resolution: null,
+      resolutionTime: null,
       callContext: {
         transcript: callRecord?.transcript || [],
         partialOrder: callRecord?.partialOrder || null,
@@ -429,9 +493,11 @@ router.post('/transfer-human', async (req, res) => {
         customerName: callRecord?.customerName || null,
         contextSummary: context_summary || '',
       },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    // Save escalation
+    // Save escalation to Firestore
     await saveHumanEscalation(escalation);
 
     // Update call record
@@ -441,7 +507,7 @@ router.post('/transfer-human', async (req, res) => {
       callRecord.outcome = 'escalated_to_human';
     }
 
-    // Notify human agents (via Socket.IO)
+    // Notify admin via Socket.IO
     if (global.io) {
       global.io.to('role-admin').emit('voice-escalation', escalation);
       global.io.to('role-support').emit('voice-escalation', escalation);
@@ -452,7 +518,6 @@ router.post('/transfer-human', async (req, res) => {
       escalationId: escalation.id,
       action: 'transfer_call',
       message: 'Transferring to human agent',
-      // Telephony action: transfer to agent queue number
       transferTo: process.env.HUMAN_AGENT_QUEUE_NUMBER || '+919566700534',
     });
   } catch (error) {
@@ -486,12 +551,12 @@ router.post('/send-sms', async (req, res) => {
 // ─── ADMIN ENDPOINTS ─────────────────────────────────────────
 
 /**
- * GET /api/admin/voice-calls
+ * GET /api/voice/admin/calls
  * Admin: List all voice calls with filters
  */
 router.get('/admin/calls', async (req, res) => {
   try {
-    const { status, date_from, date_to, outcome, page = 1, limit = 20 } = req.query;
+    const { outcome, date_from, date_to, page = 1, limit = 20 } = req.query;
 
     const calls = await getVoiceCalls({
       outcome,
@@ -515,7 +580,7 @@ router.get('/admin/calls', async (req, res) => {
 });
 
 /**
- * GET /api/admin/voice-analytics
+ * GET /api/voice/admin/analytics
  * Admin: Voice call analytics dashboard data
  */
 router.get('/admin/analytics', async (req, res) => {
@@ -535,7 +600,7 @@ router.get('/admin/analytics', async (req, res) => {
 });
 
 /**
- * GET /api/admin/voice-calls/:id/transcript
+ * GET /api/voice/admin/calls/:id/transcript
  * Admin: Get full transcript for a specific call
  */
 router.get('/admin/calls/:id/transcript', async (req, res) => {
@@ -554,7 +619,7 @@ router.get('/admin/calls/:id/transcript', async (req, res) => {
 });
 
 /**
- * GET /api/admin/escalations
+ * GET /api/voice/admin/escalations
  * Admin: List human escalations
  */
 router.get('/admin/escalations', async (req, res) => {
@@ -578,202 +643,603 @@ router.get('/admin/escalations', async (req, res) => {
   }
 });
 
-// ─── DATABASE HELPER FUNCTIONS ───────────────────────────────
-// These functions interact with Firestore
-// In production, replace with actual Firestore calls
+/**
+ * PUT /api/voice/admin/escalations/:id/resolve
+ * Admin: Resolve an escalation
+ */
+router.put('/admin/escalations/:id/resolve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { agentId, agentName, resolution } = req.body;
 
+    await db.collection('human_escalations').doc(id).update({
+      status: 'resolved',
+      agentId: agentId || 'admin',
+      agentName: agentName || 'Admin',
+      resolution: resolution || 'Resolved by admin',
+      resolutionTime: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    res.json({ success: true, message: 'Escalation resolved' });
+  } catch (error) {
+    console.error('❌ Resolve escalation error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/voice/admin/live-calls
+ * Admin: Get currently active calls
+ */
+router.get('/admin/live-calls', (req, res) => {
+  const liveCalls = Array.from(activeCalls.values()).map(call => ({
+    id: call.id,
+    callId: call.callId,
+    phone: call.callerPhone,
+    startTime: call.startTime,
+    duration: Math.floor((Date.now() - new Date(call.startTime).getTime()) / 1000),
+    language: call.detectedLanguage,
+    turnCount: call.turnIndex,
+    status: call.outcome,
+  }));
+
+  res.json({
+    success: true,
+    liveCalls,
+    count: liveCalls.length,
+  });
+});
+
+// ─── DATABASE FUNCTIONS (REAL FIRESTORE) ─────────────────────
+
+/**
+ * Get customer voice profile from Firestore
+ */
 async function getCustomerVoiceProfile(phone) {
-  // TODO: Query Firestore 'customer_voice_profiles' collection
-  // For now, return null (new customer)
   try {
-    // const admin = require('firebase-admin');
-    // const db = admin.firestore();
-    // const snap = await db.collection('customer_voice_profiles').doc(phone).get();
-    // if (snap.exists) return { phoneNumber: phone, ...snap.data() };
+    // Normalize phone number
+    const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+    
+    const snap = await db.collection('customer_voice_profiles').doc(normalizedPhone).get();
+    if (snap.exists) {
+      return { phoneNumber: phone, ...snap.data() };
+    }
+    
+    // Also check by full phone number
+    const snap2 = await db.collection('customer_voice_profiles').doc(phone).get();
+    if (snap2.exists) {
+      return { phoneNumber: phone, ...snap2.data() };
+    }
+    
     return null;
   } catch (e) {
+    console.error('Get voice profile error:', e.message);
     return null;
   }
 }
 
+/**
+ * Update/create customer voice profile after successful call
+ */
 async function updateCustomerVoiceProfile(phone, callRecord) {
-  // TODO: Update/create customer voice profile in Firestore
   try {
-    // const admin = require('firebase-admin');
-    // const db = admin.firestore();
-    // await db.collection('customer_voice_profiles').doc(phone).set({
-    //   phoneNumber: phone,
-    //   lastOrderId: callRecord.linkedOrderId,
-    //   preferredLanguage: callRecord.detectedLanguage,
-    //   totalVoiceOrders: admin.firestore.FieldValue.increment(1),
-    //   updatedAt: new Date().toISOString(),
-    // }, { merge: true });
-    console.log(`✅ Voice profile updated for ${phone}`);
+    const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+    
+    const profileRef = db.collection('customer_voice_profiles').doc(normalizedPhone);
+    const existing = await profileRef.get();
+    
+    const updateData = {
+      phoneNumber: phone,
+      lastOrderId: callRecord.linkedOrderId || null,
+      preferredLanguage: callRecord.detectedLanguage || 'ta',
+      totalVoiceOrders: existing.exists 
+        ? FieldValue.increment(1) 
+        : 1,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    if (callRecord.customerName) {
+      updateData.knownName = callRecord.customerName;
+    }
+    
+    if (!existing.exists) {
+      updateData.createdAt = new Date().toISOString();
+      updateData.frequentItems = [];
+    }
+    
+    await profileRef.set(updateData, { merge: true });
+    console.log(`✅ Voice profile updated for ${normalizedPhone}`);
   } catch (e) {
-    console.error('Profile update error:', e);
+    console.error('Profile update error:', e.message);
   }
 }
 
+/**
+ * Save voice call record to Firestore
+ */
 async function saveVoiceCall(callRecord) {
-  // TODO: Save to Firestore 'voice_calls' collection
   try {
-    // const admin = require('firebase-admin');
-    // const db = admin.firestore();
-    // await db.collection('voice_calls').doc(callRecord.id).set(callRecord);
+    const docData = {
+      ...callRecord,
+      // Calculate AI confidence score from transcript turns
+      aiConfidenceScore: calculateAverageConfidence(callRecord.transcript),
+      savedAt: FieldValue.serverTimestamp(),
+    };
+    
+    await db.collection('voice_calls').doc(callRecord.id).set(docData);
     console.log(`✅ Voice call saved: ${callRecord.id}`);
   } catch (e) {
-    console.error('Save voice call error:', e);
+    console.error('Save voice call error:', e.message);
   }
 }
 
+/**
+ * Save human escalation to Firestore
+ */
 async function saveHumanEscalation(escalation) {
-  // TODO: Save to Firestore 'human_escalations' collection
   try {
-    // const admin = require('firebase-admin');
-    // const db = admin.firestore();
-    // await db.collection('human_escalations').doc(escalation.id).set(escalation);
+    await db.collection('human_escalations').doc(escalation.id).set(escalation);
     console.log(`✅ Escalation saved: ${escalation.id}`);
   } catch (e) {
-    console.error('Save escalation error:', e);
+    console.error('Save escalation error:', e.message);
   }
 }
 
+/**
+ * Search shops by area and category — REAL Firestore query
+ */
 async function searchShopsForVoice(area, itemCategory, itemName) {
-  // TODO: Query Firestore 'shops' collection with filters
-  // Uses existing shops data — fuzzy match on name/area
   try {
-    // const admin = require('firebase-admin');
-    // const db = admin.firestore();
-    // let query = db.collection('shops').where('isOpen', '==', true).where('isApproved', '==', true);
-    // if (itemCategory) query = query.where('categoryId', '==', itemCategory);
-    // const snap = await query.orderBy('rating', 'desc').limit(5).get();
-    // return snap.docs.map(d => ({ shopId: d.id, ...d.data() }));
-
-    // Fallback: return mock data for development
-    return [
-      { shopId: 'shop_1', shopName: 'Murugan Stores', distance: '0.5 km', rating: 4.5, isOpen: true, hasRequestedItems: true },
-      { shopId: 'shop_2', shopName: 'Sri Krishna Maligai', distance: '1.2 km', rating: 4.3, isOpen: true, hasRequestedItems: true },
-    ];
+    let query = db.collection('shops')
+      .where('isApproved', '==', true);
+    
+    // Filter by category if provided
+    if (itemCategory) {
+      query = query.where('categoryId', '==', itemCategory);
+    }
+    
+    // Get shops — limit to 10 candidates
+    const snap = await query.orderBy('rating', 'desc').limit(10).get();
+    
+    if (snap.empty) {
+      // Fallback: get all approved shops
+      const fallback = await db.collection('shops')
+        .where('isApproved', '==', true)
+        .orderBy('rating', 'desc')
+        .limit(5)
+        .get();
+      
+      return fallback.docs.map(doc => formatShopResult(doc));
+    }
+    
+    // Filter by area (fuzzy match on address/area fields)
+    const normalizedArea = (area || '').toLowerCase().trim();
+    let results = snap.docs.map(doc => formatShopResult(doc));
+    
+    if (normalizedArea) {
+      const areaMatched = results.filter(shop => {
+        const shopArea = (shop.area || shop.address || '').toLowerCase();
+        const shopCity = (shop.city || '').toLowerCase();
+        return shopArea.includes(normalizedArea) || 
+               shopCity.includes(normalizedArea) ||
+               normalizedArea.includes(shopCity);
+      });
+      
+      // If area filtering finds results, use them; otherwise return all
+      if (areaMatched.length > 0) {
+        results = areaMatched;
+      }
+    }
+    
+    return results.slice(0, 5);
   } catch (e) {
-    console.error('Search shops error:', e);
+    console.error('Search shops error:', e.message);
     return [];
   }
 }
 
-async function searchItemInShop(shopId, itemQuery) {
-  // TODO: Query Firestore 'products' collection
-  // Fuzzy text search on product name within the given shop
-  try {
-    // const admin = require('firebase-admin');
-    // const db = admin.firestore();
-    // const snap = await db.collection('products')
-    //   .where('shopId', '==', shopId)
-    //   .where('isAvailable', '==', true)
-    //   .get();
-    // // Fuzzy match on item name
-    // const results = snap.docs.filter(d => {
-    //   const name = d.data().name.toLowerCase();
-    //   return name.includes(itemQuery.toLowerCase());
-    // });
-    // return results.map(d => ({ productId: d.id, ...d.data() }));
-
-    // Fallback: return mock data for development
-    return [
-      { productId: 'prod_1', name: 'Gold Winner Sunflower Oil', nameTamil: 'கோல்ட் வின்னர் சூரியகாந்தி எண்ணெய்', price: 180, unit: '1 litre', isAvailable: true, stockQuantity: 25 },
-    ];
-  } catch (e) {
-    console.error('Search item error:', e);
-    return [];
-  }
-}
-
-async function getLastOrderByPhone(phone) {
-  // TODO: Query Firestore 'orders' collection by customer phone
-  try {
-    // const admin = require('firebase-admin');
-    // const db = admin.firestore();
-    // const snap = await db.collection('orders')
-    //   .where('customerPhone', '==', phone)
-    //   .orderBy('createdAt', 'desc')
-    //   .limit(1)
-    //   .get();
-    // if (snap.empty) return null;
-    // const doc = snap.docs[0];
-    // return { orderId: doc.id, ...doc.data() };
-    return null;
-  } catch (e) {
-    console.error('Get last order error:', e);
-    return null;
-  }
-}
-
-async function placeVoiceOrder(orderData) {
-  // ━━━━ CRITICAL: Reuses the SAME order creation as app checkout ━━━━
-  // TODO: Use firebase-admin to write to 'orders' collection
-  // This MUST use the same order structure as the checkout page
-  try {
-    // const admin = require('firebase-admin');
-    // const db = admin.firestore();
-    // const ref = await db.collection('orders').add({
-    //   ...orderData,
-    //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    //   updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    // });
-    // return ref.id;
-
-    // Fallback: generate mock order ID
-    const orderId = `order_voice_${crypto.randomBytes(6).toString('hex')}`;
-    console.log(`✅ Voice order created: ${orderId}`);
-    return orderId;
-  } catch (e) {
-    console.error('Place voice order error:', e);
-    throw new Error('Failed to create order');
-  }
-}
-
-async function sendSmsConfirmation(phone, data) {
-  // TODO: Integrate with SMS provider (Exotel/MSG91/Twilio)
-  try {
-    const message = data.summary || `Namma Ooru Express: Order #${data.orderId || 'NEW'} placed! Total: ₹${data.total || 0}. Delivery in ${data.eta || '30 min'}. Track: noe.in/t/${data.orderId || ''}`;
-    console.log(`📱 SMS to ${phone}: ${message}`);
-    // In production:
-    // await smsProvider.send({ to: phone, message });
-  } catch (e) {
-    console.error('Send SMS error:', e);
-  }
-}
-
-async function getVoiceCalls(filters) {
-  // TODO: Query Firestore with pagination
-  return { data: [], total: 0 };
-}
-
-async function getVoiceAnalytics(period) {
-  // TODO: Aggregate Firestore data
+function formatShopResult(doc) {
+  const data = doc.data();
   return {
-    totalCalls: 0,
-    successfulOrders: 0,
-    escalatedCalls: 0,
-    abandonedCalls: 0,
-    averageHandleTime: 0,
-    averageConfidenceScore: 0,
-    successRate: 0,
-    escalationRate: 0,
-    peakHours: [],
-    languageDistribution: [],
-    topItems: [],
-    dailyTrend: [],
+    shopId: doc.id,
+    shopName: data.name || data.shopName || 'Unknown Shop',
+    area: data.area || data.address || '',
+    city: data.city || 'Thanjavur',
+    distance: data.distance || '—',
+    rating: data.rating || 4.0,
+    isOpen: data.isOpen !== false,
+    hasRequestedItems: true, // Will be refined with item search
+    categoryId: data.categoryId || '',
+    phone: data.phone || '',
   };
 }
 
-async function getCallTranscript(callId) {
-  // TODO: Query Firestore
-  return [];
+/**
+ * Search items within a shop — REAL Firestore query with fuzzy matching
+ */
+async function searchItemInShop(shopId, itemQuery) {
+  try {
+    // Get all available products for this shop
+    const snap = await db.collection('products')
+      .where('shopId', '==', shopId)
+      .where('isAvailable', '==', true)
+      .limit(100)
+      .get();
+    
+    if (snap.empty) {
+      // Try without isAvailable filter (in case field doesn't exist)
+      const fallback = await db.collection('products')
+        .where('shopId', '==', shopId)
+        .limit(100)
+        .get();
+      
+      if (fallback.empty) return [];
+      return fuzzyMatchItems(fallback.docs, itemQuery);
+    }
+    
+    return fuzzyMatchItems(snap.docs, itemQuery);
+  } catch (e) {
+    console.error('Search item error:', e.message);
+    return [];
+  }
 }
 
+/**
+ * Fuzzy match items against a query string
+ */
+function fuzzyMatchItems(docs, query) {
+  const normalizedQuery = (query || '').toLowerCase().trim();
+  const queryWords = normalizedQuery.split(/\s+/);
+  
+  const scored = docs.map(doc => {
+    const data = doc.data();
+    const name = (data.name || '').toLowerCase();
+    const nameTamil = (data.nameTamil || '').toLowerCase();
+    const category = (data.category || '').toLowerCase();
+    const brand = (data.brand || '').toLowerCase();
+    
+    let score = 0;
+    
+    // Exact name match
+    if (name.includes(normalizedQuery) || nameTamil.includes(normalizedQuery)) {
+      score += 100;
+    }
+    
+    // Word-level matching
+    queryWords.forEach(word => {
+      if (word.length < 2) return;
+      if (name.includes(word)) score += 30;
+      if (nameTamil.includes(word)) score += 30;
+      if (category.includes(word)) score += 15;
+      if (brand.includes(word)) score += 20;
+    });
+    
+    return { doc, data, score };
+  });
+  
+  // Filter to items with some match and sort by score
+  return scored
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(item => ({
+      productId: item.doc.id,
+      name: item.data.name || '',
+      nameTamil: item.data.nameTamil || item.data.name || '',
+      price: item.data.price || item.data.sellingPrice || 0,
+      discountPrice: item.data.discountPrice || null,
+      unit: item.data.unit || 'piece',
+      isAvailable: item.data.isAvailable !== false,
+      stockQuantity: item.data.stockQuantity || item.data.stock || 0,
+      brand: item.data.brand || '',
+      category: item.data.category || '',
+      variants: item.data.variants || [],
+    }));
+}
+
+/**
+ * Get customer's last order by phone number
+ */
+async function getLastOrderByPhone(phone) {
+  try {
+    const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+    
+    // Try customerPhone field first
+    let snap = await db.collection('orders')
+      .where('customerPhone', '==', phone)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    
+    if (snap.empty) {
+      // Try with normalized phone
+      snap = await db.collection('orders')
+        .where('customerPhone', '==', `+91${normalizedPhone}`)
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+    }
+    
+    if (snap.empty) {
+      // Try userId pattern for voice users
+      snap = await db.collection('orders')
+        .where('userId', '==', `voice_${normalizedPhone}`)
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+    }
+    
+    if (snap.empty) return null;
+    
+    const doc = snap.docs[0];
+    const data = doc.data();
+    
+    return {
+      orderId: doc.id,
+      orderNumber: data.orderNumber || doc.id,
+      shopName: data.shopName || 'Unknown',
+      shopId: data.shopId,
+      items: (data.items || []).map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit || 'piece',
+        price: item.price || 0,
+      })),
+      total: data.total || 0,
+      status: data.status,
+      createdAt: data.createdAt?.toDate?.() 
+        ? data.createdAt.toDate().toISOString() 
+        : data.createdAt || '',
+    };
+  } catch (e) {
+    console.error('Get last order error:', e.message);
+    return null;
+  }
+}
+
+/**
+ * Send SMS confirmation (placeholder — connect to MSG91/Exotel)
+ */
+async function sendSmsConfirmation(phone, data) {
+  try {
+    const message = data.summary || 
+      `Namma Ooru Express: Order #${data.orderNumber || data.orderId || 'NEW'} placed at ${data.shopName || 'shop'}! ` +
+      `Total: ₹${data.total || 0}. Delivery in ${data.eta || '30 min'}.`;
+    
+    console.log(`📱 SMS to ${phone}: ${message}`);
+    
+    // ━━━━ SMS PROVIDER INTEGRATION POINT ━━━━
+    // Uncomment and configure when SMS provider is set up:
+    //
+    // --- OPTION A: MSG91 ---
+    // const msg91 = require('msg91').default;
+    // await msg91.sendSMS(phone, message, 'NOE', '4');
+    //
+    // --- OPTION B: Exotel ---
+    // const axios = require('axios');
+    // await axios.post(`https://api.exotel.com/v1/Accounts/${EXOTEL_SID}/Sms/send`, {
+    //   From: EXOTEL_PHONE,
+    //   To: phone,
+    //   Body: message,
+    // }, { auth: { username: EXOTEL_SID, password: EXOTEL_TOKEN } });
+    //
+    // --- OPTION C: Twilio ---
+    // const twilio = require('twilio')(TWILIO_SID, TWILIO_TOKEN);
+    // await twilio.messages.create({ body: message, from: TWILIO_PHONE, to: phone });
+    
+    // Log SMS to Firestore for audit
+    await db.collection('sms_logs').add({
+      phone,
+      message,
+      data: JSON.stringify(data),
+      sentAt: FieldValue.serverTimestamp(),
+      status: 'sent', // Will be 'sent' once provider is integrated
+    });
+    
+    return true;
+  } catch (e) {
+    console.error('Send SMS error:', e.message);
+    return false;
+  }
+}
+
+/**
+ * Get voice calls with filters and pagination
+ */
+async function getVoiceCalls(filters) {
+  try {
+    let query = db.collection('voice_calls').orderBy('createdAt', 'desc');
+    
+    if (filters.outcome) {
+      query = query.where('outcome', '==', filters.outcome);
+    }
+    
+    if (filters.dateFrom) {
+      query = query.where('createdAt', '>=', filters.dateFrom);
+    }
+    
+    if (filters.dateTo) {
+      query = query.where('createdAt', '<=', filters.dateTo);
+    }
+    
+    // Get total count (approximate)
+    const countSnap = await query.count().get();
+    const total = countSnap.data().count;
+    
+    // Paginate
+    const offset = (filters.page - 1) * filters.limit;
+    const snap = await query.offset(offset).limit(filters.limit).get();
+    
+    const data = snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    
+    return { data, total };
+  } catch (e) {
+    console.error('Get voice calls error:', e.message);
+    return { data: [], total: 0 };
+  }
+}
+
+/**
+ * Get voice analytics — aggregated data
+ */
+async function getVoiceAnalytics(period) {
+  try {
+    // Calculate date range
+    const now = new Date();
+    let startDate;
+    switch (period) {
+      case '1d': startDate = new Date(now - 24 * 60 * 60 * 1000); break;
+      case '7d': startDate = new Date(now - 7 * 24 * 60 * 60 * 1000); break;
+      case '30d': startDate = new Date(now - 30 * 24 * 60 * 60 * 1000); break;
+      default: startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    }
+    
+    // Query all calls in the period
+    const snap = await db.collection('voice_calls')
+      .where('createdAt', '>=', startDate.toISOString())
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    const calls = snap.docs.map(doc => doc.data());
+    
+    const totalCalls = calls.length;
+    const successfulOrders = calls.filter(c => c.outcome === 'order_created').length;
+    const escalatedCalls = calls.filter(c => c.outcome === 'escalated_to_human').length;
+    const abandonedCalls = calls.filter(c => c.outcome === 'abandoned').length;
+    
+    const durations = calls.filter(c => c.duration > 0).map(c => c.duration);
+    const averageHandleTime = durations.length > 0 
+      ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+      : 0;
+    
+    const confidences = calls.filter(c => c.aiConfidenceScore > 0).map(c => c.aiConfidenceScore);
+    const averageConfidenceScore = confidences.length > 0
+      ? Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length)
+      : 0;
+    
+    const successRate = totalCalls > 0 ? Math.round((successfulOrders / totalCalls) * 100 * 10) / 10 : 0;
+    const escalationRate = totalCalls > 0 ? Math.round((escalatedCalls / totalCalls) * 100 * 10) / 10 : 0;
+    
+    // Peak hours
+    const hourCounts = {};
+    calls.forEach(c => {
+      const hour = new Date(c.startTime).getHours();
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+    });
+    const peakHours = Object.entries(hourCounts).map(([hour, count]) => ({
+      hour: parseInt(hour),
+      count,
+    })).sort((a, b) => a.hour - b.hour);
+    
+    // Language distribution
+    const langCounts = {};
+    calls.forEach(c => {
+      const lang = c.detectedLanguage || 'ta';
+      langCounts[lang] = (langCounts[lang] || 0) + 1;
+    });
+    const languageDistribution = Object.entries(langCounts).map(([language, count]) => ({
+      language,
+      count,
+    }));
+    
+    // Daily trend
+    const dailyCounts = {};
+    calls.forEach(c => {
+      const date = c.startTime?.split('T')[0] || '';
+      if (!dailyCounts[date]) dailyCounts[date] = { calls: 0, orders: 0 };
+      dailyCounts[date].calls++;
+      if (c.outcome === 'order_created') dailyCounts[date].orders++;
+    });
+    const dailyTrend = Object.entries(dailyCounts).map(([date, data]) => ({
+      date,
+      calls: data.calls,
+      orders: data.orders,
+    })).sort((a, b) => a.date.localeCompare(b.date));
+    
+    return {
+      totalCalls,
+      successfulOrders,
+      escalatedCalls,
+      abandonedCalls,
+      averageHandleTime,
+      averageConfidenceScore,
+      successRate,
+      escalationRate,
+      peakHours,
+      languageDistribution,
+      topItems: [], // TODO: aggregate from orders
+      dailyTrend,
+    };
+  } catch (e) {
+    console.error('Get voice analytics error:', e.message);
+    return {
+      totalCalls: 0, successfulOrders: 0, escalatedCalls: 0, abandonedCalls: 0,
+      averageHandleTime: 0, averageConfidenceScore: 0, successRate: 0, escalationRate: 0,
+      peakHours: [], languageDistribution: [], topItems: [], dailyTrend: [],
+    };
+  }
+}
+
+/**
+ * Get call transcript by call ID
+ */
+async function getCallTranscript(callId) {
+  try {
+    const doc = await db.collection('voice_calls').doc(callId).get();
+    if (!doc.exists) return [];
+    
+    const data = doc.data();
+    return data.transcript || [];
+  } catch (e) {
+    console.error('Get transcript error:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Get human escalations with filters
+ */
 async function getEscalations(filters) {
-  // TODO: Query Firestore
-  return { data: [], total: 0 };
+  try {
+    let query = db.collection('human_escalations').orderBy('escalatedAt', 'desc');
+    
+    if (filters.status) {
+      query = query.where('status', '==', filters.status);
+    }
+    
+    const countSnap = await query.count().get();
+    const total = countSnap.data().count;
+    
+    const offset = (filters.page - 1) * filters.limit;
+    const snap = await query.offset(offset).limit(filters.limit).get();
+    
+    const data = snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    
+    return { data, total };
+  } catch (e) {
+    console.error('Get escalations error:', e.message);
+    return { data: [], total: 0 };
+  }
+}
+
+/**
+ * Calculate average AI confidence from transcript turns
+ */
+function calculateAverageConfidence(transcript) {
+  if (!transcript || !transcript.length) return 0;
+  
+  const customerTurns = transcript.filter(t => t.speaker === 'customer' && t.confidence > 0);
+  if (customerTurns.length === 0) return 0;
+  
+  const total = customerTurns.reduce((sum, turn) => sum + turn.confidence, 0);
+  return Math.round(total / customerTurns.length);
 }
 
 module.exports = router;

@@ -40,5 +40,42 @@ service cloud.firestore {
       allow create, update: if true;
       allow delete: if false;
     }
+
+    // ━━━ SHOPS ━━━
+    match /shops/{shopId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
+    // ━━━ VOICE CALLS (AI Call System) ━━━
+    // Server-side writes via Admin SDK (no client rules needed)
+    // Admin reads for dashboard
+    match /voice_calls/{callId} {
+      allow read: if true; // Admin dashboard reads
+      allow create, update: if true; // Server writes via Admin SDK
+      allow delete: if false;
+    }
+
+    // ━━━ CUSTOMER VOICE PROFILES ━━━
+    match /customer_voice_profiles/{phoneId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
+    // ━━━ HUMAN ESCALATIONS ━━━
+    match /human_escalations/{escalationId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
+    // ━━━ SMS LOGS ━━━
+    match /sms_logs/{logId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
   }
 }
